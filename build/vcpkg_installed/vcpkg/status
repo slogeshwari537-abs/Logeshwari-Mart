@@ -1,0 +1,198 @@
+Package: vcpkg-cmake-config
+Version: 2026-07-21
+Architecture: x64-windows
+Multi-Arch: same
+Abi: a8705a7bc99a1966fb40af9039777fb0b0fa6a5baf458f088274ef55c1b49337
+Status: install ok installed
+
+Package: vcpkg-cmake
+Version: 2025-08-07
+Architecture: x64-windows
+Multi-Arch: same
+Abi: d6d945a7d98468879e65a01e94e348746c1b8a7456603357b9194b41a5aed285
+Status: install ok installed
+
+Package: zlib
+Version: 1.3.2
+Port-Version: 2
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 80eb9d4ae31ff22a9e824e6e1dbf8f860c098a630560993e595d20b0e7885908
+Description: A compression library
+Status: install ok installed
+
+Package: vcpkg-cmake-get-vars
+Version: 2025-05-29
+Depends: vcpkg-cmake
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 2ef797a320a67230ce8666b63dfa757b68702fb2fbb37c4f6aeb125a7575c803
+Status: install ok installed
+
+Package: openssl
+Version: 3.6.4
+Depends: vcpkg-cmake, vcpkg-cmake-config, vcpkg-cmake-get-vars
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 8b1e14fd53f6ef5357ea5ffd3b5b4626deb1249b6709864efa38b1f12fe1110f
+Description: OpenSSL is an open source project that provides a robust, commercial-grade, and full-featured toolkit for the Transport Layer Security (TLS) and Secure Sockets Layer (SSL) protocols. It is also a general-purpose cryptography library.
+Status: install ok installed
+
+Package: lz4
+Version: 1.10.0
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: f5709f0ec52d2dfbee47657f62e581510f867ddb2951e976ee4ba5b853592314
+Description: Lossless compression algorithm, providing compression speed at 400 MB/s per core.
+Status: install ok installed
+
+Package: vcpkg-tool-meson
+Version: 1.9.0
+Port-Version: 10
+Depends: vcpkg-cmake-get-vars
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 1139956bc6809fba571724b4278e6285d7ce1adb9acae38d63f103b85d538bbe
+Description: Meson build system
+Status: install ok installed
+
+Package: libpq
+Version: 18.4
+Depends: vcpkg-cmake-get-vars, vcpkg-tool-meson
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 47aed1ceb2f02016a5399f3cd0856fdb1deeaf3fa1bd48af2a4d2e9df2ad6740
+Description: The official database access API of postgresql
+Default-Features: lz4, openssl, zlib
+Status: install ok installed
+
+Package: libpq
+Feature: lz4
+Depends: lz4
+Architecture: x64-windows
+Multi-Arch: same
+Description: Use lz4
+Status: install ok installed
+
+Package: libpq
+Feature: openssl
+Depends: openssl
+Architecture: x64-windows
+Multi-Arch: same
+Description: support for encrypted client connections and random number generation on platforms that do not have "/dev/urandom" (except windows)
+Status: install ok installed
+
+Package: libpq
+Feature: zlib
+Depends: zlib
+Architecture: x64-windows
+Multi-Arch: same
+Description: Use zlib
+Status: install ok installed
+
+Package: c-ares
+Version: 1.34.8
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 03cfd1d570eaf4d7050d40d2656ce50269b4fcde166191d030265b3507818904
+Description: A C library for asynchronous DNS requests
+Status: install ok installed
+
+Package: trantor
+Version: 1.5.28
+Depends: c-ares, openssl, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: d01765821c5e4f45d63f7930a41a7c175bf0b5f9a5f32ef9c7abb7a7935b2adf
+Description: A non-blocking I/O cross-platform TCP network library, using C++14
+Status: install ok installed
+
+Package: jsoncpp
+Version: 1.9.6
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 29828f49d72c9a650a5716263c1c066dad62cde2ceb1a9314779d0c87ac57e45
+Description: JsonCpp is a C++ library that allows manipulating JSON values, including serialization and deserialization to and from strings. It can also preserve existing comment in unserialization/serialization steps, making it a convenient format to store user input files.
+Status: install ok installed
+
+Package: brotli
+Version: 1.2.0
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: c4adaca2c191008b2597eef69a8916af2a13be60f77384a2546ab9788e6daef5
+Description: a generic-purpose lossless compression algorithm that compresses data using a combination of a modern variant of the LZ77 algorithm, Huffman coding and 2nd order context modeling.
+Status: install ok installed
+
+Package: drogon
+Version: 1.9.13
+Port-Version: 2
+Depends: brotli, jsoncpp, trantor, vcpkg-cmake, vcpkg-cmake-config, zlib
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 3de861f14e13a94f94adcffed3314af29daea891a1e9845158701cf61bc0e4b5
+Description: A C++17/20 based HTTP web application framework running on Linux/macOS/Unix/Windows
+Status: install ok installed
+
+Package: drogon
+Feature: orm
+Architecture: x64-windows
+Multi-Arch: same
+Description: Build with object-relational mapping support.
+Status: install ok installed
+
+Package: drogon
+Feature: postgres
+Depends: libpq
+Architecture: x64-windows
+Multi-Arch: same
+Description: Support reading and writing from/to Postgres databases.
+Status: install ok installed
+
+Package: pkgconf
+Version: 3.0.3
+Depends: vcpkg-tool-meson
+Architecture: x64-windows
+Multi-Arch: same
+Abi: fc7fcf39e085cb5743f6b746475ada359df8d258a18003c8fa14dd57d6f02b82
+Description: pkgconf is a program which helps to configure compiler and linker flags for development libraries. It is similar to pkg-config from freedesktop.org.
+Status: install ok installed
+
+Package: vcpkg-pkgconfig-get-modules
+Version: 2024-04-03
+Depends: pkgconf
+Architecture: x64-windows
+Multi-Arch: same
+Abi: efb24073da31841eaa3d99d0055db6c085f7d1c875723b05e18f9e0f9053fceb
+Status: install ok installed
+
+Package: vcpkg-msbuild
+Version: 2023-08-08
+Depends: vcpkg-cmake-get-vars, vcpkg-pkgconfig-get-modules
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 2ebdba7c496f0612fc570fb31057df7a5df33ef0fb58a51a66da695c0d4da9b9
+Status: install ok installed
+
+Package: vcpkg-make
+Version: 2026-07-09
+Depends: vcpkg-cmake-get-vars
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 88170b98c88527ec4c6e7132e11fd66f2effef000bf4d0064be647b6d286d6f6
+Status: install ok installed
+
+Package: libsodium
+Version: 1.0.22
+Port-Version: 1
+Depends: vcpkg-cmake-get-vars, vcpkg-make, vcpkg-msbuild
+Architecture: x64-windows
+Multi-Arch: same
+Abi: cb5851951963238c9628e1593801208a6e065c1ff31c6d71a08bc5488bb5a753
+Description: A modern and easy-to-use crypto library
+Status: install ok installed
+

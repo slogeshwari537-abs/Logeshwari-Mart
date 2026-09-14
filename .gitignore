@@ -1,0 +1,7 @@
+build/
+vcpkg_installed/
+.vscode/
+*.exe
+*.obj
+*.pdb
+*.log
