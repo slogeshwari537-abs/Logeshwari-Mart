@@ -1,3 +1,0 @@
-C:/Users/Acer/Logeshwari Mart/build/CMakeFiles/LogeshwariMart.dir
-C:/Users/Acer/Logeshwari Mart/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/Acer/Logeshwari Mart/build/CMakeFiles/ZERO_CHECK.dir
