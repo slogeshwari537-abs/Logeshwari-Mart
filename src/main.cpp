@@ -1,5 +1,5 @@
-
 #include <drogon/drogon.h>
+#include <spdlog/spdlog.h>
 
 #include <iostream>
 
@@ -13,7 +13,7 @@ void registerChatbotRoutes();
 
 int main()
 {
-    std::cout << "Starting LogeshwariMart..." << std::endl;
+    spdlog::info("Starting LogeshwariMart...");
 
     drogon::app().loadConfigFile("config.json");
 
@@ -22,6 +22,8 @@ int main()
         [](const drogon::HttpRequestPtr&,
            std::function<void(const drogon::HttpResponsePtr&)>&& callback)
         {
+            spdlog::info("Home route called");
+
             auto response =
                 drogon::HttpResponse::newHttpResponse();
 
@@ -44,7 +46,7 @@ int main()
 
     drogon::app().addListener("127.0.0.1", 8080);
 
-    std::cout << "Starting Drogon server..." << std::endl;
+    spdlog::info("Starting Drogon server on port 8080...");
 
     drogon::app().run();
 

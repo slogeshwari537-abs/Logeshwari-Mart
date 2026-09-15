@@ -1,21 +1,35 @@
 #include <drogon/drogon.h>
-#include "../repository/AdminRepository.h"
 
-using namespace drogon;
+#include "../repository/AdminRepository.h"
+#include "../util/RoleUtil.h"
 
 void registerAdminRoutes()
 {
-    // View All Users
-    app().registerHandler(
+    drogon::app().registerHandler(
         "/api/admin/users",
-        [](const HttpRequestPtr&,
-           std::function<void(const HttpResponsePtr&)>&& callback)
+        [](const drogon::HttpRequestPtr& req,
+           std::function<void(const drogon::HttpResponsePtr&)>&& callback)
         {
-            auto response = HttpResponse::newHttpResponse();
-            response->setContentTypeCode(CT_APPLICATION_JSON);
+            auto role = req->getParameter("role");
+
+            if (!isAdmin(role))
+            {
+                auto response =
+                    drogon::HttpResponse::newHttpResponse();
+
+                response->setStatusCode(
+                    drogon::k403Forbidden
+                );
+
+                response->setBody(
+                    "Admin access required"
+                );
+
+                callback(response);
+                return;
+            }
 
             AdminRepository repository;
-
             auto users = repository.getAllUsers();
 
             Json::Value result(Json::arrayValue);
@@ -32,40 +46,67 @@ void registerAdminRoutes()
                 result.append(item);
             }
 
-            response->setBody(result.toStyledString());
+            auto response =
+                drogon::HttpResponse::newHttpJsonResponse(result);
 
             callback(response);
         },
-        {Get}
+        {drogon::Get}
     );
 
-    // Delete User
-    app().registerHandler(
-        "/api/admin/users/{userId}",
-        [](const HttpRequestPtr&,
-           std::function<void(const HttpResponsePtr&)>&& callback,
+    drogon::app().registerHandler(
+        "/api/admin/users/{1}",
+        [](const drogon::HttpRequestPtr& req,
+           std::function<void(const drogon::HttpResponsePtr&)>&& callback,
            int userId)
         {
-            auto response = HttpResponse::newHttpResponse();
-            response->setContentTypeCode(CT_APPLICATION_JSON);
+            auto role = req->getParameter("role");
+
+            if (!isAdmin(role))
+            {
+                auto response =
+                    drogon::HttpResponse::newHttpResponse();
+
+                response->setStatusCode(
+                    drogon::k403Forbidden
+                );
+
+                response->setBody(
+                    "Admin access required"
+                );
+
+                callback(response);
+                return;
+            }
 
             AdminRepository repository;
 
-            if (repository.deleteUser(userId))
+            if (!repository.deleteUser(userId))
             {
-                response->setBody(
-                    R"({"success":true,"message":"User deleted successfully"})"
+                auto response =
+                    drogon::HttpResponse::newHttpResponse();
+
+                response->setStatusCode(
+                    drogon::k400BadRequest
                 );
-            }
-            else
-            {
+
                 response->setBody(
-                    R"({"success":false,"message":"Failed to delete user"})"
+                    "Failed to delete user"
                 );
+
+                callback(response);
+                return;
             }
+
+            auto response =
+                drogon::HttpResponse::newHttpResponse();
+
+            response->setBody(
+                "User deleted successfully"
+            );
 
             callback(response);
         },
-        {Delete}
+        {drogon::Delete}
     );
 }

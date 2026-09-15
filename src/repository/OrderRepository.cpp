@@ -10,8 +10,11 @@ bool OrderRepository::createOrder(
 
     try
     {
-        // Get cart items with product price and stock
-        auto cartResult = client->execSqlSync(
+        // Start transaction
+        auto transaction = client->newTransaction();
+
+        // Get buyer cart with product details
+        auto cartResult = transaction->execSqlSync(
             "SELECT cart_items.product_id, "
             "cart_items.quantity, "
             "products.price_cents, "
@@ -23,26 +26,23 @@ bool OrderRepository::createOrder(
             std::to_string(buyerId)
         );
 
+        // Cart is empty
         if (cartResult.empty())
         {
             return false;
         }
 
-        // Calculate total from database
         long long calculatedTotal = 0;
 
+        // Validate quantity and stock
         for (const auto& row : cartResult)
         {
-            int quantity =
-                row["quantity"].as<int>();
-
+            int quantity = row["quantity"].as<int>();
             long long price =
                 row["price_cents"].as<long long>();
-
             int stock =
                 row["stock_qty"].as<int>();
 
-            // Check stock
             if (quantity <= 0 || quantity > stock)
             {
                 return false;
@@ -51,14 +51,14 @@ bool OrderRepository::createOrder(
             calculatedTotal += price * quantity;
         }
 
-        // Verify total amount
+        // Validate total amount
         if (calculatedTotal != totalAmountCents)
         {
             return false;
         }
 
         // Create order
-        auto orderResult = client->execSqlSync(
+        auto orderResult = transaction->execSqlSync(
             "INSERT INTO orders "
             "(buyer_id, status, total_amount_cents) "
             "VALUES ($1::integer, 'PENDING', $2::bigint) "
@@ -70,7 +70,7 @@ bool OrderRepository::createOrder(
         int orderId =
             orderResult[0]["id"].as<int>();
 
-        // Add order items and reduce stock
+        // Create order items and reduce stock
         for (const auto& row : cartResult)
         {
             int productId =
@@ -82,7 +82,7 @@ bool OrderRepository::createOrder(
             long long price =
                 row["price_cents"].as<long long>();
 
-            client->execSqlSync(
+            transaction->execSqlSync(
                 "INSERT INTO order_items "
                 "(order_id, product_id, quantity, unit_price_cents) "
                 "VALUES ($1::integer, $2::integer, "
@@ -93,7 +93,7 @@ bool OrderRepository::createOrder(
                 std::to_string(price)
             );
 
-            client->execSqlSync(
+            transaction->execSqlSync(
                 "UPDATE products "
                 "SET stock_qty = stock_qty - $1::integer "
                 "WHERE id = $2::integer",
@@ -103,12 +103,14 @@ bool OrderRepository::createOrder(
         }
 
         // Clear buyer cart
-        client->execSqlSync(
+        transaction->execSqlSync(
             "DELETE FROM cart_items "
             "WHERE user_id = $1::integer",
             std::to_string(buyerId)
         );
 
+        // Drogon automatically commits when
+        // the transaction object is destroyed.
         return true;
     }
     catch (const std::exception&)

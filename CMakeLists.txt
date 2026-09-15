@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.25)
 
 project(LogeshwariMart)
@@ -6,8 +5,18 @@ project(LogeshwariMart)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# =========================
+# Dependencies
+# =========================
+
 find_package(Drogon CONFIG REQUIRED)
 find_package(unofficial-sodium CONFIG REQUIRED)
+find_package(GTest CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+
+# =========================
+# Main Application
+# =========================
 
 add_executable(LogeshwariMart
 
@@ -39,4 +48,25 @@ target_include_directories(LogeshwariMart PRIVATE
 target_link_libraries(LogeshwariMart PRIVATE
     Drogon::Drogon
     unofficial-sodium::sodium
+    spdlog::spdlog
+)
+
+# =========================
+# GoogleTest
+# =========================
+
+enable_testing()
+
+add_executable(LogeshwariMartTests
+    test/AuthTest.cpp
+)
+
+target_link_libraries(LogeshwariMartTests PRIVATE
+    GTest::gtest
+    GTest::gtest_main
+)
+
+add_test(
+    NAME AuthTest
+    COMMAND LogeshwariMartTests
 )

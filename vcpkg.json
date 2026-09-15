@@ -8,6 +8,8 @@
         "postgres"
       ]
     },
-    "libsodium"
+    "libsodium",
+    "gtest",
+    "spdlog"
   ]
 }
