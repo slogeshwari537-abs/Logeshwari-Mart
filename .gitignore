@@ -1,4 +1,4 @@
-build/
+.vs/build/
 vcpkg_installed/
 .vscode/
 *.exe
@@ -6,3 +6,6 @@ vcpkg_installed/
 *.pdb
 *.log
 config.json
+.vs/
+build/
+CMakeSettings.json
