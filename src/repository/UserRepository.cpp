@@ -1,7 +1,9 @@
 #include "UserRepository.h"
+
 #include <drogon/drogon.h>
 
-bool UserRepository::userExists(const std::string& email)
+bool UserRepository::userExists(
+    const std::string& email)
 {
     auto client = drogon::app().getDbClient();
 
@@ -31,7 +33,8 @@ bool UserRepository::registerUser(
     try
     {
         client->execSqlSync(
-            "INSERT INTO users (name, email, password_hash, role) "
+            "INSERT INTO users "
+            "(name, email, password_hash, role) "
             "VALUES ($1, $2, $3, $4)",
             name,
             email,
@@ -47,20 +50,24 @@ bool UserRepository::registerUser(
     }
 }
 
-std::string UserRepository::getPasswordHash(const std::string& email)
+std::string UserRepository::getPasswordHash(
+    const std::string& email)
 {
     auto client = drogon::app().getDbClient();
 
     try
     {
         auto result = client->execSqlSync(
-            "SELECT password_hash FROM users WHERE email = $1",
+            "SELECT password_hash "
+            "FROM users "
+            "WHERE email = $1",
             email
         );
 
         if (!result.empty())
         {
-            return result[0]["password_hash"].as<std::string>();
+            return result[0]["password_hash"]
+                .as<std::string>();
         }
     }
     catch (const std::exception&)
@@ -68,4 +75,48 @@ std::string UserRepository::getPasswordHash(const std::string& email)
     }
 
     return "";
+}
+
+std::optional<User> UserRepository::getUserByEmail(
+    const std::string& email)
+{
+    auto client = drogon::app().getDbClient();
+
+    try
+    {
+        auto result = client->execSqlSync(
+            "SELECT id, name, email, password_hash, role "
+            "FROM users "
+            "WHERE email = $1",
+            email
+        );
+
+        if (!result.empty())
+        {
+            User user;
+
+            user.id =
+                result[0]["id"].as<int>();
+
+            user.name =
+                result[0]["name"].as<std::string>();
+
+            user.email =
+                result[0]["email"].as<std::string>();
+
+            user.password_hash =
+                result[0]["password_hash"]
+                    .as<std::string>();
+
+            user.role =
+                result[0]["role"].as<std::string>();
+
+            return user;
+        }
+    }
+    catch (const std::exception&)
+    {
+    }
+
+    return std::nullopt;
 }
