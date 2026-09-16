@@ -44,6 +44,9 @@ int main()
     registerReviewRoutes();
     registerChatbotRoutes();
 
+    // Serve frontend files
+    drogon::app().setDocumentRoot("./frontend");
+
     drogon::app().addListener("127.0.0.1", 8080);
 
     spdlog::info("Starting Drogon server on port 8080...");
