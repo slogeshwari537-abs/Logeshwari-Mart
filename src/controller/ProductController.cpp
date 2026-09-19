@@ -1,24 +1,55 @@
+#include "ProductController.h"
 
 #include <drogon/drogon.h>
+
 #include "../repository/ProductRepository.h"
+#include "../repository/UserRepository.h"
 
 using namespace drogon;
 
 void registerProductRoutes()
 {
-    // Add Product
+    // ============================
+    // ADD PRODUCT - SELLER ONLY
+    // ============================
+
     app().registerHandler(
         "/api/products",
         [](const HttpRequestPtr& req,
            std::function<void(const HttpResponsePtr&)>&& callback)
         {
-            auto response = HttpResponse::newHttpResponse();
-            response->setContentTypeCode(CT_APPLICATION_JSON);
+            auto response =
+                HttpResponse::newHttpResponse();
 
-            auto json = req->getJsonObject();
+            response->setContentTypeCode(
+                CT_APPLICATION_JSON);
+
+            int authenticatedUserId =
+                req->getAttributes()
+                    ->get<int>("authenticatedUserId");
+
+            UserRepository userRepository;
+
+            auto user =
+                userRepository.getUserById(
+                    authenticatedUserId);
+
+            if (!user || user->role != "SELLER")
+            {
+                response->setStatusCode(
+                    k403Forbidden);
+
+                response->setBody(
+                    R"({"success":false,"message":"Seller access required"})");
+
+                callback(response);
+                return;
+            }
+
+            auto json =
+                req->getJsonObject();
 
             if (!json ||
-                !json->isMember("seller_id") ||
                 !json->isMember("name") ||
                 !json->isMember("description") ||
                 !json->isMember("price_cents") ||
@@ -26,54 +57,84 @@ void registerProductRoutes()
                 !json->isMember("category"))
             {
                 response->setBody(
-                    R"({"success":false,"message":"All fields are required"})"
-                );
+                    R"({"success":false,"message":"All fields are required"})");
+
                 callback(response);
                 return;
             }
 
             Product product;
 
-            product.seller_id = (*json)["seller_id"].asInt();
-            product.name = (*json)["name"].asString();
-            product.description = (*json)["description"].asString();
-            product.price_cents = (*json)["price_cents"].asInt64();
-            product.stock_qty = (*json)["stock_qty"].asInt();
-            product.category = (*json)["category"].asString();
+            product.seller_id =
+                authenticatedUserId;
+
+            product.name =
+                (*json)["name"].asString();
+
+            product.description =
+                (*json)["description"].asString();
+
+            product.price_cents =
+                (*json)["price_cents"].asInt64();
+
+            product.stock_qty =
+                (*json)["stock_qty"].asInt();
+
+            product.category =
+                (*json)["category"].asString();
+
+            if (product.name.empty() ||
+                product.description.empty() ||
+                product.category.empty() ||
+                product.price_cents <= 0 ||
+                product.stock_qty < 0)
+            {
+                response->setBody(
+                    R"({"success":false,"message":"Invalid product data"})");
+
+                callback(response);
+                return;
+            }
 
             ProductRepository repository;
 
             if (repository.addProduct(product))
             {
                 response->setBody(
-                    R"({"success":true,"message":"Product added successfully"})"
-                );
+                    R"({"success":true,"message":"Product added successfully"})");
             }
             else
             {
                 response->setBody(
-                    R"({"success":false,"message":"Failed to add product"})"
-                );
+                    R"({"success":false,"message":"Failed to add product"})");
             }
 
             callback(response);
         },
-        {Post}
-    );
+        {Post, "AuthFilter"});
 
-    // View Products
+    // ============================
+    // VIEW PRODUCTS - PUBLIC
+    // ============================
+
     app().registerHandler(
         "/api/products",
         [](const HttpRequestPtr&,
            std::function<void(const HttpResponsePtr&)>&& callback)
         {
-            auto response = HttpResponse::newHttpResponse();
-            response->setContentTypeCode(CT_APPLICATION_JSON);
+            auto response =
+                HttpResponse::newHttpResponse();
+
+            response->setContentTypeCode(
+                CT_APPLICATION_JSON);
 
             ProductRepository repository;
-            auto products = repository.getProducts();
 
-            Json::Value result(Json::arrayValue);
+            auto products =
+                repository.getProducts();
+
+            Json::Value result(
+                Json::arrayValue);
 
             for (const auto& product : products)
             {
@@ -83,29 +144,41 @@ void registerProductRoutes()
                 item["seller_id"] = product.seller_id;
                 item["name"] = product.name;
                 item["description"] = product.description;
+
                 item["price_cents"] =
-                    static_cast<Json::Int64>(product.price_cents);
-                item["stock_qty"] = product.stock_qty;
-                item["category"] = product.category;
+                    static_cast<Json::Int64>(
+                        product.price_cents);
+
+                item["stock_qty"] =
+                    product.stock_qty;
+
+                item["category"] =
+                    product.category;
 
                 result.append(item);
             }
 
-            response->setBody(result.toStyledString());
+            response->setBody(
+                result.toStyledString());
 
             callback(response);
         },
-        {Get}
-    );
+        {Get});
 
-    // Search and Filter Products
+    // ============================
+    // SEARCH / FILTER - PUBLIC
+    // ============================
+
     app().registerHandler(
         "/api/products/search",
         [](const HttpRequestPtr& req,
            std::function<void(const HttpResponsePtr&)>&& callback)
         {
-            auto response = HttpResponse::newHttpResponse();
-            response->setContentTypeCode(CT_APPLICATION_JSON);
+            auto response =
+                HttpResponse::newHttpResponse();
+
+            response->setContentTypeCode(
+                CT_APPLICATION_JSON);
 
             std::string keyword =
                 req->getParameter("keyword");
@@ -116,9 +189,12 @@ void registerProductRoutes()
             ProductRepository repository;
 
             auto products =
-                repository.searchProducts(keyword, category);
+                repository.searchProducts(
+                    keyword,
+                    category);
 
-            Json::Value result(Json::arrayValue);
+            Json::Value result(
+                Json::arrayValue);
 
             for (const auto& product : products)
             {
@@ -128,32 +204,68 @@ void registerProductRoutes()
                 item["seller_id"] = product.seller_id;
                 item["name"] = product.name;
                 item["description"] = product.description;
+
                 item["price_cents"] =
-                    static_cast<Json::Int64>(product.price_cents);
-                item["stock_qty"] = product.stock_qty;
-                item["category"] = product.category;
+                    static_cast<Json::Int64>(
+                        product.price_cents);
+
+                item["stock_qty"] =
+                    product.stock_qty;
+
+                item["category"] =
+                    product.category;
 
                 result.append(item);
             }
 
-            response->setBody(result.toStyledString());
+            response->setBody(
+                result.toStyledString());
 
             callback(response);
         },
-        {Get}
-    );
+        {Get});
 
-    // Update Product
+    // ============================
+    // UPDATE PRODUCT
+    // SELLER + OWN PRODUCT ONLY
+    // ============================
+
     app().registerHandler(
         "/api/products/{id}",
         [](const HttpRequestPtr& req,
            std::function<void(const HttpResponsePtr&)>&& callback,
            int id)
         {
-            auto response = HttpResponse::newHttpResponse();
-            response->setContentTypeCode(CT_APPLICATION_JSON);
+            auto response =
+                HttpResponse::newHttpResponse();
 
-            auto json = req->getJsonObject();
+            response->setContentTypeCode(
+                CT_APPLICATION_JSON);
+
+            int authenticatedUserId =
+                req->getAttributes()
+                    ->get<int>("authenticatedUserId");
+
+            UserRepository userRepository;
+
+            auto user =
+                userRepository.getUserById(
+                    authenticatedUserId);
+
+            if (!user || user->role != "SELLER")
+            {
+                response->setStatusCode(
+                    k403Forbidden);
+
+                response->setBody(
+                    R"({"success":false,"message":"Seller access required"})");
+
+                callback(response);
+                return;
+            }
+
+            auto json =
+                req->getJsonObject();
 
             if (!json ||
                 !json->isMember("name") ||
@@ -163,8 +275,8 @@ void registerProductRoutes()
                 !json->isMember("category"))
             {
                 response->setBody(
-                    R"({"success":false,"message":"All fields are required"})"
-                );
+                    R"({"success":false,"message":"All fields are required"})");
+
                 callback(response);
                 return;
             }
@@ -172,60 +284,109 @@ void registerProductRoutes()
             Product product;
 
             product.id = id;
-            product.name = (*json)["name"].asString();
-            product.description = (*json)["description"].asString();
-            product.price_cents = (*json)["price_cents"].asInt64();
-            product.stock_qty = (*json)["stock_qty"].asInt();
-            product.category = (*json)["category"].asString();
+
+            product.name =
+                (*json)["name"].asString();
+
+            product.description =
+                (*json)["description"].asString();
+
+            product.price_cents =
+                (*json)["price_cents"].asInt64();
+
+            product.stock_qty =
+                (*json)["stock_qty"].asInt();
+
+            product.category =
+                (*json)["category"].asString();
+
+            if (product.name.empty() ||
+                product.description.empty() ||
+                product.category.empty() ||
+                product.price_cents <= 0 ||
+                product.stock_qty < 0)
+            {
+                response->setBody(
+                    R"({"success":false,"message":"Invalid product data"})");
+
+                callback(response);
+                return;
+            }
 
             ProductRepository repository;
 
-            if (repository.updateProduct(product))
+            if (repository.updateProduct(
+                    product,
+                    authenticatedUserId))
             {
                 response->setBody(
-                    R"({"success":true,"message":"Product updated successfully"})"
-                );
+                    R"({"success":true,"message":"Product updated successfully"})");
             }
             else
             {
                 response->setBody(
-                    R"({"success":false,"message":"Failed to update product"})"
-                );
+                    R"({"success":false,"message":"Product update failed or product does not belong to seller"})");
             }
 
             callback(response);
         },
-        {Put}
-    );
+        {Put, "AuthFilter"});
 
-    // Delete Product
+    // ============================
+    // DELETE PRODUCT
+    // SELLER + OWN PRODUCT ONLY
+    // ============================
+
     app().registerHandler(
         "/api/products/{id}",
-        [](const HttpRequestPtr&,
+        [](const HttpRequestPtr& req,
            std::function<void(const HttpResponsePtr&)>&& callback,
            int id)
         {
-            auto response = HttpResponse::newHttpResponse();
-            response->setContentTypeCode(CT_APPLICATION_JSON);
+            auto response =
+                HttpResponse::newHttpResponse();
+
+            response->setContentTypeCode(
+                CT_APPLICATION_JSON);
+
+            int authenticatedUserId =
+                req->getAttributes()
+                    ->get<int>("authenticatedUserId");
+
+            UserRepository userRepository;
+
+            auto user =
+                userRepository.getUserById(
+                    authenticatedUserId);
+
+            if (!user || user->role != "SELLER")
+            {
+                response->setStatusCode(
+                    k403Forbidden);
+
+                response->setBody(
+                    R"({"success":false,"message":"Seller access required"})");
+
+                callback(response);
+                return;
+            }
 
             ProductRepository repository;
 
-            if (repository.deleteProduct(id))
+            if (repository.deleteProduct(
+                    id,
+                    authenticatedUserId))
             {
                 response->setBody(
-                    R"({"success":true,"message":"Product deleted successfully"})"
-                );
+                    R"({"success":true,"message":"Product deleted successfully"})");
             }
             else
             {
                 response->setBody(
-                    R"({"success":false,"message":"Failed to delete product"})"
-                );
+                    R"({"success":false,"message":"Product deletion failed or product does not belong to seller"})");
             }
 
             callback(response);
         },
-        {Delete}
-    );
+        {Delete, "AuthFilter"});
 }
-

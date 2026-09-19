@@ -1,6 +1,8 @@
 #include <drogon/drogon.h>
+
 #include "../repository/UserRepository.h"
 #include "../service/AuthService.h"
+#include "../service/SessionManager.h"
 
 using namespace drogon;
 
@@ -15,7 +17,10 @@ void registerAuthRoutes()
            std::function<void(const HttpResponsePtr&)>&& callback)
         {
             auto response = HttpResponse::newHttpResponse();
-            response->setContentTypeCode(CT_APPLICATION_JSON);
+
+            response->setContentTypeCode(
+                CT_APPLICATION_JSON
+            );
 
             auto json = req->getJsonObject();
 
@@ -45,8 +50,7 @@ void registerAuthRoutes()
             std::string role =
                 (*json)["role"].asString();
 
-            // Admin registration is not allowed.
-            // Admin accounts must be created by database seeding.
+            // Admin registration is not allowed
             if (role == "ADMIN")
             {
                 response->setBody(
@@ -57,7 +61,7 @@ void registerAuthRoutes()
                 return;
             }
 
-            // Only BUYER and SELLER can register.
+            // Only BUYER and SELLER are allowed
             if (role != "BUYER" &&
                 role != "SELLER")
             {
@@ -69,7 +73,7 @@ void registerAuthRoutes()
                 return;
             }
 
-            // Basic validation.
+            // Empty field validation
             if (name.empty() ||
                 email.empty() ||
                 password.empty())
@@ -84,6 +88,7 @@ void registerAuthRoutes()
 
             UserRepository repository;
 
+            // Check existing email
             if (repository.userExists(email))
             {
                 response->setBody(
@@ -94,6 +99,7 @@ void registerAuthRoutes()
                 return;
             }
 
+            // Hash password
             AuthService authService;
 
             std::string passwordHash =
@@ -109,6 +115,7 @@ void registerAuthRoutes()
                 return;
             }
 
+            // Register user
             bool registered =
                 repository.registerUser(
                     name,
@@ -135,6 +142,7 @@ void registerAuthRoutes()
         {Post}
     );
 
+
     // =========================
     // LOGIN
     // =========================
@@ -144,7 +152,10 @@ void registerAuthRoutes()
            std::function<void(const HttpResponsePtr&)>&& callback)
         {
             auto response = HttpResponse::newHttpResponse();
-            response->setContentTypeCode(CT_APPLICATION_JSON);
+
+            response->setContentTypeCode(
+                CT_APPLICATION_JSON
+            );
 
             auto json = req->getJsonObject();
 
@@ -166,6 +177,7 @@ void registerAuthRoutes()
             std::string password =
                 (*json)["password"].asString();
 
+            // Empty field validation
             if (email.empty() ||
                 password.empty())
             {
@@ -179,6 +191,7 @@ void registerAuthRoutes()
 
             UserRepository repository;
 
+            // Check user
             if (!repository.userExists(email))
             {
                 response->setBody(
@@ -189,11 +202,13 @@ void registerAuthRoutes()
                 return;
             }
 
+            // Get password hash
             std::string passwordHash =
                 repository.getPasswordHash(email);
 
             AuthService authService;
 
+            // Verify password
             if (!authService.verifyPassword(
                     password,
                     passwordHash))
@@ -206,7 +221,7 @@ void registerAuthRoutes()
                 return;
             }
 
-            // Get user information after successful login.
+            // Get user details
             auto user =
                 repository.getUserByEmail(email);
 
@@ -220,6 +235,38 @@ void registerAuthRoutes()
                 return;
             }
 
+            // =========================
+            // CREATE LOGIN SESSION
+            // =========================
+
+            std::string sessionToken =
+                ::SessionManager::getInstance()
+                    .createSession(user->id);
+
+            if (sessionToken.empty())
+            {
+                response->setBody(
+                    R"({"success":false,"message":"Session creation failed"})"
+                );
+
+                callback(response);
+                return;
+            }
+
+            // =========================
+            // SET SESSION COOKIE
+            // =========================
+
+            response->addHeader(
+                "Set-Cookie",
+                "session_token=" + sessionToken +
+                "; Path=/; HttpOnly"
+            );
+
+            // =========================
+            // LOGIN RESPONSE
+            // =========================
+
             Json::Value result;
 
             result["success"] = true;
@@ -228,6 +275,9 @@ void registerAuthRoutes()
             result["name"] = user->name;
             result["email"] = user->email;
             result["role"] = user->role;
+
+            // Keep token in response also
+            result["token"] = sessionToken;
 
             response->setBody(
                 result.toStyledString()

@@ -1,4 +1,3 @@
-
 #include <drogon/drogon.h>
 #include "../repository/CartRepository.h"
 
@@ -6,7 +5,10 @@ using namespace drogon;
 
 void registerCartRoutes()
 {
-    // Add to Cart
+    // ============================
+    // ADD TO CART
+    // ============================
+
     app().registerHandler(
         "/api/cart",
         [](const HttpRequestPtr& req,
@@ -14,6 +16,9 @@ void registerCartRoutes()
         {
             auto response = HttpResponse::newHttpResponse();
             response->setContentTypeCode(CT_APPLICATION_JSON);
+
+            int authenticatedUserId =
+                req->getAttributes()->get<int>("authenticatedUserId");
 
             auto json = req->getJsonObject();
 
@@ -23,8 +28,7 @@ void registerCartRoutes()
                 !json->isMember("quantity"))
             {
                 response->setBody(
-                    R"({"success":false,"message":"All fields are required"})"
-                );
+                    R"({"success":false,"message":"All fields are required"})");
                 callback(response);
                 return;
             }
@@ -33,47 +37,71 @@ void registerCartRoutes()
             int productId = (*json)["product_id"].asInt();
             int quantity = (*json)["quantity"].asInt();
 
+            if (userId != authenticatedUserId)
+            {
+                response->setStatusCode(k403Forbidden);
+                response->setBody(
+                    R"({"success":false,"message":"You can only access your own cart"})");
+                callback(response);
+                return;
+            }
+
             if (quantity <= 0)
             {
                 response->setBody(
-                    R"({"success":false,"message":"Quantity must be greater than zero"})"
-                );
+                    R"({"success":false,"message":"Quantity must be greater than zero"})");
                 callback(response);
                 return;
             }
 
             CartRepository repository;
 
-            if (repository.addToCart(userId, productId, quantity))
+            if (repository.addToCart(
+                    authenticatedUserId,
+                    productId,
+                    quantity))
             {
                 response->setBody(
-                    R"({"success":true,"message":"Product added to cart"})"
-                );
+                    R"({"success":true,"message":"Product added to cart"})");
             }
             else
             {
                 response->setBody(
-                    R"({"success":false,"message":"Failed to add product to cart"})"
-                );
+                    R"({"success":false,"message":"Failed to add product to cart"})");
             }
 
             callback(response);
         },
-        {Post}
+        {Post, "AuthFilter"}
     );
 
-    // View Cart
+    // ============================
+    // VIEW CART
+    // ============================
+
     app().registerHandler(
         "/api/cart/{userId}",
-        [](const HttpRequestPtr&,
+        [](const HttpRequestPtr& req,
            std::function<void(const HttpResponsePtr&)>&& callback,
            int userId)
         {
             auto response = HttpResponse::newHttpResponse();
             response->setContentTypeCode(CT_APPLICATION_JSON);
 
+            int authenticatedUserId =
+                req->getAttributes()->get<int>("authenticatedUserId");
+
+            if (userId != authenticatedUserId)
+            {
+                response->setStatusCode(k403Forbidden);
+                response->setBody(
+                    R"({"success":false,"message":"You can only access your own cart"})");
+                callback(response);
+                return;
+            }
+
             CartRepository repository;
-            auto cart = repository.getCart(userId);
+            auto cart = repository.getCart(authenticatedUserId);
 
             Json::Value result(Json::arrayValue);
 
@@ -92,41 +120,56 @@ void registerCartRoutes()
             response->setBody(result.toStyledString());
             callback(response);
         },
-        {Get}
+        {Get, "AuthFilter"}
     );
 
-    // Clear Cart
-    // IMPORTANT: This route is before /api/cart/{userId}/{productId}
+    // ============================
+    // CLEAR CART
+    // ============================
+
     app().registerHandler(
         "/api/cart/clear/{userId}",
-        [](const HttpRequestPtr&,
+        [](const HttpRequestPtr& req,
            std::function<void(const HttpResponsePtr&)>&& callback,
            int userId)
         {
             auto response = HttpResponse::newHttpResponse();
             response->setContentTypeCode(CT_APPLICATION_JSON);
 
+            int authenticatedUserId =
+                req->getAttributes()->get<int>("authenticatedUserId");
+
+            if (userId != authenticatedUserId)
+            {
+                response->setStatusCode(k403Forbidden);
+                response->setBody(
+                    R"({"success":false,"message":"You can only clear your own cart"})");
+                callback(response);
+                return;
+            }
+
             CartRepository repository;
 
-            if (repository.clearCart(userId))
+            if (repository.clearCart(authenticatedUserId))
             {
                 response->setBody(
-                    R"({"success":true,"message":"Cart cleared successfully"})"
-                );
+                    R"({"success":true,"message":"Cart cleared successfully"})");
             }
             else
             {
                 response->setBody(
-                    R"({"success":false,"message":"Failed to clear cart"})"
-                );
+                    R"({"success":false,"message":"Failed to clear cart"})");
             }
 
             callback(response);
         },
-        {Delete}
+        {Delete, "AuthFilter"}
     );
 
-    // Update Cart
+    // ============================
+    // UPDATE CART
+    // ============================
+
     app().registerHandler(
         "/api/cart/{userId}/{productId}",
         [](const HttpRequestPtr& req,
@@ -137,13 +180,24 @@ void registerCartRoutes()
             auto response = HttpResponse::newHttpResponse();
             response->setContentTypeCode(CT_APPLICATION_JSON);
 
+            int authenticatedUserId =
+                req->getAttributes()->get<int>("authenticatedUserId");
+
+            if (userId != authenticatedUserId)
+            {
+                response->setStatusCode(k403Forbidden);
+                response->setBody(
+                    R"({"success":false,"message":"You can only update your own cart"})");
+                callback(response);
+                return;
+            }
+
             auto json = req->getJsonObject();
 
             if (!json || !json->isMember("quantity"))
             {
                 response->setBody(
-                    R"({"success":false,"message":"Quantity is required"})"
-                );
+                    R"({"success":false,"message":"Quantity is required"})");
                 callback(response);
                 return;
             }
@@ -153,36 +207,39 @@ void registerCartRoutes()
             if (quantity <= 0)
             {
                 response->setBody(
-                    R"({"success":false,"message":"Quantity must be greater than zero"})"
-                );
+                    R"({"success":false,"message":"Quantity must be greater than zero"})");
                 callback(response);
                 return;
             }
 
             CartRepository repository;
 
-            if (repository.updateCartItem(userId, productId, quantity))
+            if (repository.updateCartItem(
+                    authenticatedUserId,
+                    productId,
+                    quantity))
             {
                 response->setBody(
-                    R"({"success":true,"message":"Cart updated successfully"})"
-                );
+                    R"({"success":true,"message":"Cart updated successfully"})");
             }
             else
             {
                 response->setBody(
-                    R"({"success":false,"message":"Failed to update cart"})"
-                );
+                    R"({"success":false,"message":"Failed to update cart"})");
             }
 
             callback(response);
         },
-        {Put}
+        {Put, "AuthFilter"}
     );
 
-    // Remove from Cart
+    // ============================
+    // REMOVE FROM CART
+    // ============================
+
     app().registerHandler(
         "/api/cart/{userId}/{productId}",
-        [](const HttpRequestPtr&,
+        [](const HttpRequestPtr& req,
            std::function<void(const HttpResponsePtr&)>&& callback,
            int userId,
            int productId)
@@ -190,24 +247,35 @@ void registerCartRoutes()
             auto response = HttpResponse::newHttpResponse();
             response->setContentTypeCode(CT_APPLICATION_JSON);
 
+            int authenticatedUserId =
+                req->getAttributes()->get<int>("authenticatedUserId");
+
+            if (userId != authenticatedUserId)
+            {
+                response->setStatusCode(k403Forbidden);
+                response->setBody(
+                    R"({"success":false,"message":"You can only remove items from your own cart"})");
+                callback(response);
+                return;
+            }
+
             CartRepository repository;
 
-            if (repository.removeFromCart(userId, productId))
+            if (repository.removeFromCart(
+                    authenticatedUserId,
+                    productId))
             {
                 response->setBody(
-                    R"({"success":true,"message":"Product removed from cart"})"
-                );
+                    R"({"success":true,"message":"Product removed from cart"})");
             }
             else
             {
                 response->setBody(
-                    R"({"success":false,"message":"Failed to remove product from cart"})"
-                );
+                    R"({"success":false,"message":"Failed to remove product from cart"})");
             }
 
             callback(response);
         },
-        {Delete}
+        {Delete, "AuthFilter"}
     );
 }
-

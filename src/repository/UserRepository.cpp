@@ -120,3 +120,47 @@ std::optional<User> UserRepository::getUserByEmail(
 
     return std::nullopt;
 }
+
+std::optional<User> UserRepository::getUserById(
+    int userId)
+{
+    auto client = drogon::app().getDbClient();
+
+    try
+    {
+        auto result = client->execSqlSync(
+            "SELECT id, name, email, password_hash, role "
+            "FROM users "
+            "WHERE id = $1::integer",
+            std::to_string(userId)
+        );
+
+        if (!result.empty())
+        {
+            User user;
+
+            user.id =
+                result[0]["id"].as<int>();
+
+            user.name =
+                result[0]["name"].as<std::string>();
+
+            user.email =
+                result[0]["email"].as<std::string>();
+
+            user.password_hash =
+                result[0]["password_hash"]
+                    .as<std::string>();
+
+            user.role =
+                result[0]["role"].as<std::string>();
+
+            return user;
+        }
+    }
+    catch (const std::exception&)
+    {
+    }
+
+    return std::nullopt;
+}

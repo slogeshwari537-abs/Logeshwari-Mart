@@ -1,9 +1,9 @@
-
 #include "ProductRepository.h"
 
 #include <drogon/drogon.h>
 
-bool ProductRepository::addProduct(const Product& product)
+bool ProductRepository::addProduct(
+    const Product& product)
 {
     auto client = drogon::app().getDbClient();
 
@@ -48,24 +48,14 @@ std::vector<Product> ProductRepository::getProducts()
         {
             Product product;
 
-            product.id =
-                row["id"].as<int>();
-
-            product.seller_id =
-                row["seller_id"].as<int>();
-
-            product.name =
-                row["name"].as<std::string>();
-
-            product.description =
-                row["description"].as<std::string>();
-
+            product.id = row["id"].as<int>();
+            product.seller_id = row["seller_id"].as<int>();
+            product.name = row["name"].as<std::string>();
+            product.description = row["description"].as<std::string>();
             product.price_cents =
                 row["price_cents"].as<long long>();
-
             product.stock_qty =
                 row["stock_qty"].as<int>();
-
             product.category =
                 row["category"].as<std::string>();
 
@@ -105,24 +95,15 @@ std::vector<Product> ProductRepository::searchProducts(
         {
             Product product;
 
-            product.id =
-                row["id"].as<int>();
-
-            product.seller_id =
-                row["seller_id"].as<int>();
-
-            product.name =
-                row["name"].as<std::string>();
-
+            product.id = row["id"].as<int>();
+            product.seller_id = row["seller_id"].as<int>();
+            product.name = row["name"].as<std::string>();
             product.description =
                 row["description"].as<std::string>();
-
             product.price_cents =
                 row["price_cents"].as<long long>();
-
             product.stock_qty =
                 row["stock_qty"].as<int>();
-
             product.category =
                 row["category"].as<std::string>();
 
@@ -137,29 +118,32 @@ std::vector<Product> ProductRepository::searchProducts(
 }
 
 bool ProductRepository::updateProduct(
-    const Product& product)
+    const Product& product,
+    int sellerId)
 {
     auto client = drogon::app().getDbClient();
 
     try
     {
-        client->execSqlSync(
+        auto result = client->execSqlSync(
             "UPDATE products "
             "SET name = $1, "
             "description = $2, "
             "price_cents = $3::bigint, "
             "stock_qty = $4::integer, "
             "category = $5 "
-            "WHERE id = $6::integer",
+            "WHERE id = $6::integer "
+            "AND seller_id = $7::integer",
             product.name,
             product.description,
             std::to_string(product.price_cents),
             std::to_string(product.stock_qty),
             product.category,
-            std::to_string(product.id)
+            std::to_string(product.id),
+            std::to_string(sellerId)
         );
 
-        return true;
+        return result.affectedRows() > 0;
     }
     catch (const std::exception&)
     {
@@ -167,19 +151,23 @@ bool ProductRepository::updateProduct(
     }
 }
 
-bool ProductRepository::deleteProduct(int id)
+bool ProductRepository::deleteProduct(
+    int productId,
+    int sellerId)
 {
     auto client = drogon::app().getDbClient();
 
     try
     {
-        client->execSqlSync(
+        auto result = client->execSqlSync(
             "DELETE FROM products "
-            "WHERE id = $1::integer",
-            std::to_string(id)
+            "WHERE id = $1::integer "
+            "AND seller_id = $2::integer",
+            std::to_string(productId),
+            std::to_string(sellerId)
         );
 
-        return true;
+        return result.affectedRows() > 0;
     }
     catch (const std::exception&)
     {

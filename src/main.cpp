@@ -1,7 +1,7 @@
 #include <drogon/drogon.h>
 #include <spdlog/spdlog.h>
 
-#include <iostream>
+#include "filter/AuthFilter.h"
 
 void registerAuthRoutes();
 void registerProductRoutes();
@@ -15,27 +15,10 @@ int main()
 {
     spdlog::info("Starting LogeshwariMart...");
 
+    // Load database and server configuration
     drogon::app().loadConfigFile("config.json");
 
-    drogon::app().registerHandler(
-        "/",
-        [](const drogon::HttpRequestPtr&,
-           std::function<void(const drogon::HttpResponsePtr&)>&& callback)
-        {
-            spdlog::info("Home route called");
-
-            auto response =
-                drogon::HttpResponse::newHttpResponse();
-
-            response->setBody(
-                "LogeshwariMart - Database Connected!"
-            );
-
-            callback(response);
-        },
-        {drogon::Get}
-    );
-
+    // Register application routes
     registerAuthRoutes();
     registerProductRoutes();
     registerCartRoutes();
@@ -47,9 +30,15 @@ int main()
     // Serve frontend files
     drogon::app().setDocumentRoot("./frontend");
 
-    drogon::app().addListener("127.0.0.1", 8080);
+    // Start server
+    drogon::app().addListener(
+        "127.0.0.1",
+        8080
+    );
 
-    spdlog::info("Starting Drogon server on port 8080...");
+    spdlog::info(
+        "Starting Drogon server on port 8080..."
+    );
 
     drogon::app().run();
 

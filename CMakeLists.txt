@@ -70,3 +70,15 @@ add_test(
     NAME AuthTest
     COMMAND LogeshwariMartTests
 )
+
+# =========================
+# Password Hash Generator
+# =========================
+
+add_executable(GenerateHash
+    src/generate_hash.cpp
+)
+
+target_link_libraries(GenerateHash PRIVATE
+    unofficial-sodium::sodium
+)

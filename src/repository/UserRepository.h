@@ -8,7 +8,9 @@
 class UserRepository
 {
 public:
-    bool userExists(const std::string& email);
+    bool userExists(
+        const std::string& email
+    );
 
     bool registerUser(
         const std::string& name,
@@ -23,5 +25,9 @@ public:
 
     std::optional<User> getUserByEmail(
         const std::string& email
+    );
+
+    std::optional<User> getUserById(
+        int userId
     );
 };
