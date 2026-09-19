@@ -25,8 +25,8 @@ add_executable(LogeshwariMart
     src/service/AuthService.cpp
     src/service/ChatbotService.cpp
     src/service/MockAIProvider.cpp
-src/service/AIProviderFactory.cpp
-src/service/GeminiAIProvider.cpp
+    src/service/AIProviderFactory.cpp
+    src/service/GeminiAIProvider.cpp
 
     src/repository/UserRepository.cpp
     src/repository/ProductRepository.cpp
@@ -42,6 +42,7 @@ src/service/GeminiAIProvider.cpp
     src/controller/AdminController.cpp
     src/controller/ReviewController.cpp
     src/controller/ChatbotController.cpp
+    src/controller/HealthController.cpp
 )
 
 target_include_directories(LogeshwariMart PRIVATE
