@@ -149,15 +149,10 @@ std::string GeminiAIProvider::getResponse(
         auto client =
             drogon::HttpClient::newHttpClient(
                 "https://generativelanguage.googleapis.com");
-
-        client->setConnectionTimeout(
-            timeoutSeconds_);
-
-        client->setRecvTimeout(
-            timeoutSeconds_);
-
-        client->setSendTimeout(
-            timeoutSeconds_);
+auto result =
+    client->sendRequest(
+        request,
+        static_cast<double>(timeoutSeconds_));
 
         auto result =
             client->sendRequest(request);
