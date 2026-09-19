@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
+#include <cstdio>
 #include <string>
 
 #include <drogon/drogon.h>
@@ -22,68 +24,105 @@ namespace
 
         return text;
     }
+
+    std::string getConfiguredProvider()
+    {
+        const char* provider =
+            std::getenv("AI_CHATBOT_PROVIDER");
+
+        if (provider == nullptr ||
+            std::string(provider).empty())
+        {
+            return "mock";
+        }
+
+        return toLower(
+            std::string(provider));
+    }
 }
 
 ChatbotService::ChatbotService()
 {
-    provider_ = AIProviderFactory::createProvider("mock");
+    std::string providerName =
+        getConfiguredProvider();
+
+    provider_ =
+        AIProviderFactory::createProvider(
+            providerName);
 }
 
 std::string ChatbotService::getResponse(
     const std::string& message)
 {
-    // Keep the existing LogeshwariMart product-aware
-    // responses for common domain questions.
-
-    std::string text = toLower(message);
+    std::string text =
+        toLower(message);
 
     // Greeting
-    if (text.find("hello") != std::string::npos ||
-        text.find("hi") != std::string::npos ||
-        text.find("hey") != std::string::npos)
+    if (text.find("hello") !=
+            std::string::npos ||
+        text.find("hi") !=
+            std::string::npos ||
+        text.find("hey") !=
+            std::string::npos)
     {
         return "Hello! Welcome to LogeshwariMart. How can I help you?";
     }
 
     // Cart-related questions
-    if (text.find("cart") != std::string::npos ||
-        text.find("add to cart") != std::string::npos ||
-        text.find("remove from cart") != std::string::npos ||
-        text.find("update cart") != std::string::npos)
+    if (text.find("cart") !=
+            std::string::npos ||
+        text.find("add to cart") !=
+            std::string::npos ||
+        text.find("remove from cart") !=
+            std::string::npos ||
+        text.find("update cart") !=
+            std::string::npos)
     {
         return "You can add products to your cart, update the quantity, remove products and clear your cart.";
     }
 
     // Order-related questions
-    if (text.find("order") != std::string::npos ||
-        text.find("checkout") != std::string::npos ||
-        text.find("payment") != std::string::npos)
+    if (text.find("order") !=
+            std::string::npos ||
+        text.find("checkout") !=
+            std::string::npos ||
+        text.find("payment") !=
+            std::string::npos)
     {
         return "You can checkout your cart using mock payment and view your order history.";
     }
 
     // Review-related questions
-    if (text.find("review") != std::string::npos ||
-        text.find("rating") != std::string::npos)
+    if (text.find("review") !=
+            std::string::npos ||
+        text.find("rating") !=
+            std::string::npos)
     {
         return "You can give a rating from 1 to 5 and add a review for a product.";
     }
 
     // Product price / stock questions
-    if (text.find("price") != std::string::npos ||
-        text.find("cost") != std::string::npos ||
-        text.find("how much") != std::string::npos ||
-        text.find("stock") != std::string::npos ||
-        text.find("available") != std::string::npos)
+    if (text.find("price") !=
+            std::string::npos ||
+        text.find("cost") !=
+            std::string::npos ||
+        text.find("how much") !=
+            std::string::npos ||
+        text.find("stock") !=
+            std::string::npos ||
+        text.find("available") !=
+            std::string::npos)
     {
         try
         {
-            auto client = drogon::app().getDbClient();
+            auto client =
+                drogon::app().getDbClient();
 
-            auto result = client->execSqlSync(
-                "SELECT name, price_cents, stock_qty "
-                "FROM products "
-                "ORDER BY id");
+            auto result =
+                client->execSqlSync(
+                    "SELECT name, price_cents, stock_qty "
+                    "FROM products "
+                    "ORDER BY id");
 
             for (const auto& row : result)
             {
@@ -114,7 +153,9 @@ std::string ChatbotService::getResponse(
                     }
 
                     double price =
-                        static_cast<double>(priceCents) / 100.0;
+                        static_cast<double>(
+                            priceCents) /
+                        100.0;
 
                     char priceText[50];
 
@@ -127,7 +168,8 @@ std::string ChatbotService::getResponse(
                     return "The price of " +
                            productName +
                            " is ₹" +
-                           priceText + ".";
+                           priceText +
+                           ".";
                 }
             }
 
@@ -140,20 +182,33 @@ std::string ChatbotService::getResponse(
     }
 
     // General product questions
-    if (text.find("product") != std::string::npos ||
-        text.find("products") != std::string::npos ||
-        text.find("search") != std::string::npos ||
-        text.find("category") != std::string::npos)
+    if (text.find("product") !=
+            std::string::npos ||
+        text.find("products") !=
+            std::string::npos ||
+        text.find("search") !=
+            std::string::npos ||
+        text.find("category") !=
+            std::string::npos)
     {
         return "You can browse, search and filter products by keyword and category.";
     }
 
     // Help
-    if (text.find("help") != std::string::npos)
+    if (text.find("help") !=
+        std::string::npos)
     {
         return "I can help with products, cart, orders, checkout, reviews and ratings.";
     }
 
-    // Use the configured AI provider for other questions.
-    return provider_->getResponse(message);
+    // Use the configured AI provider
+    // for other questions.
+    try
+    {
+        return provider_->getResponse(message);
+    }
+    catch (const std::exception&)
+    {
+        return "Sorry, the AI service is temporarily unavailable. Please try again later.";
+    }
 }
