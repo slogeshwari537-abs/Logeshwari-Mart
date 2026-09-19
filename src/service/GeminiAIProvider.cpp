@@ -1,71 +1,43 @@
 #include "GeminiAIProvider.h"
 
-#include <drogon/drogon.h>
-
 #include <cstdlib>
-#include <stdexcept>
+#include <sstream>
 #include <string>
 
-namespace
-{
-    std::string getEnvironmentVariable(
-        const char* name)
-    {
-        const char* value =
-            std::getenv(name);
-
-        if (value == nullptr)
-        {
-            return "";
-        }
-
-        return std::string(value);
-    }
-
-    std::string getEnvOrDefault(
-        const char* name,
-        const std::string& defaultValue)
-    {
-        std::string value =
-            getEnvironmentVariable(name);
-
-        if (value.empty())
-        {
-            return defaultValue;
-        }
-
-        return value;
-    }
-}
+#include <drogon/drogon.h>
+#include <json/json.h>
 
 GeminiAIProvider::GeminiAIProvider()
+    : model_("gemini-2.5-flash"),
+      timeoutSeconds_(10)
 {
-    apiKey_ =
-        getEnvironmentVariable("GEMINI_API_KEY");
+    const char* key = std::getenv("GEMINI_API_KEY");
 
-    model_ =
-        getEnvOrDefault(
-            "GEMINI_MODEL",
-            "gemini-3.5-flash");
-
-    std::string timeoutText =
-        getEnvOrDefault(
-            "AI_CHATBOT_TIMEOUT_SECONDS",
-            "10");
-
-    try
+    if (key != nullptr)
     {
-        timeoutSeconds_ =
-            std::stoi(timeoutText);
-    }
-    catch (...)
-    {
-        timeoutSeconds_ = 10;
+        apiKey_ = key;
     }
 
-    if (timeoutSeconds_ <= 0)
+    const char* model = std::getenv("GEMINI_MODEL");
+
+    if (model != nullptr && std::string(model).empty() == false)
     {
-        timeoutSeconds_ = 10;
+        model_ = model;
+    }
+
+    const char* timeout =
+        std::getenv("AI_CHATBOT_TIMEOUT_SECONDS");
+
+    if (timeout != nullptr)
+    {
+        try
+        {
+            timeoutSeconds_ = std::stoi(timeout);
+        }
+        catch (...)
+        {
+            timeoutSeconds_ = 10;
+        }
     }
 }
 
@@ -74,166 +46,174 @@ std::string GeminiAIProvider::getResponse(
 {
     if (apiKey_.empty())
     {
-        return "AI service is not configured. "
-               "Please try again later.";
+        return "AI service is not configured. Please try again later.";
     }
-
-    auto request =
-        drogon::HttpRequest::newHttpRequest();
-
-    request->setMethod(
-        drogon::Post);
-
-    request->setPath(
-        "/v1beta/models/" +
-        model_ +
-        ":generateContent");
-
-    request->addHeader(
-        "x-goog-api-key",
-        apiKey_);
-
-    request->setContentTypeCode(
-        drogon::CT_APPLICATION_JSON);
-
-    Json::Value body;
-
-    Json::Value systemInstruction;
-    Json::Value systemParts;
-
-    systemParts["text"] =
-        "You are the official LogeshwariMart "
-        "shopping assistant. "
-        "Answer only questions related to "
-        "LogeshwariMart products, shopping, "
-        "cart, orders, checkout, payment, "
-        "reviews, ratings and seller information. "
-        "Be concise, friendly and helpful. "
-        "Do not invent product prices, stock "
-        "quantities or order information. "
-        "If the question is outside the "
-        "LogeshwariMart domain, politely say "
-        "that you can only help with LogeshwariMart.";
-
-    systemInstruction["parts"] =
-        systemParts;
-
-    body["system_instruction"] =
-        systemInstruction;
-
-    Json::Value contents;
-    Json::Value userParts;
-
-    userParts["text"] =
-        prompt;
-
-    contents["parts"] =
-        userParts;
-
-    body["contents"] =
-        contents;
-
-    Json::Value generationConfig;
-
-    generationConfig["temperature"] = 0.3;
-    generationConfig["maxOutputTokens"] = 300;
-
-    body["generationConfig"] =
-        generationConfig;
-
-    request->setBody(
-        body.toStyledString());
 
     try
     {
+        auto request =
+            drogon::HttpRequest::newHttpRequest();
+
+        request->setMethod(drogon::Post);
+
+        request->setPath(
+            "/v1beta/models/" +
+            model_ +
+            ":generateContent");
+
+        request->addHeader(
+            "x-goog-api-key",
+            apiKey_);
+
+        request->setContentTypeCode(
+            drogon::CT_APPLICATION_JSON);
+
+        Json::Value root;
+
+        Json::Value systemInstruction;
+        Json::Value systemParts(Json::arrayValue);
+
+        Json::Value systemText;
+
+        systemText["text"] =
+            "You are the official LogeshwariMart shopping assistant. "
+            "Only answer questions related to LogeshwariMart products, "
+            "shopping, cart, orders, checkout, payment, reviews, ratings, "
+            "and seller information. "
+            "Do not invent product prices, stock, orders, or other facts. "
+            "If the question is unrelated to LogeshwariMart shopping, "
+            "politely say that you can only help with LogeshwariMart "
+            "related questions.";
+
+        systemParts.append(systemText);
+        systemInstruction["parts"] = systemParts;
+        root["system_instruction"] = systemInstruction;
+
+        Json::Value contents(Json::arrayValue);
+
+        Json::Value userContent;
+        Json::Value userParts(Json::arrayValue);
+
+        Json::Value userText;
+        userText["text"] = prompt;
+
+        userParts.append(userText);
+
+        userContent["role"] = "user";
+        userContent["parts"] = userParts;
+
+        contents.append(userContent);
+        root["contents"] = contents;
+
+        Json::Value generationConfig;
+
+        generationConfig["temperature"] = 0.3;
+        generationConfig["maxOutputTokens"] = 300;
+
+        root["generationConfig"] = generationConfig;
+
+        request->setBody(
+            root.toStyledString());
+
         auto client =
             drogon::HttpClient::newHttpClient(
                 "https://generativelanguage.googleapis.com");
-auto result =
-    client->sendRequest(
-        request,
-        static_cast<double>(timeoutSeconds_));
 
         auto result =
-            client->sendRequest(request);
+            client->sendRequest(
+                request,
+                static_cast<double>(
+                    timeoutSeconds_));
 
-        if (result.first !=
-            drogon::ReqResult::Ok)
+        if (result.first != drogon::ReqResult::Ok)
         {
-            return "Sorry, the AI service is "
-                   "temporarily unavailable. "
-                   "Please try again later.";
+            return
+                "AI service is temporarily unavailable. "
+                "Please try again.";
         }
 
-        auto response =
-            result.second;
+        auto response = result.second;
 
-        if (!response)
+        if (response == nullptr)
         {
-            return "Sorry, the AI service did not "
-                   "return a response.";
+            return
+                "AI service is temporarily unavailable. "
+                "Please try again.";
         }
 
-        if (response->getStatusCode() < 200 ||
-            response->getStatusCode() >= 300)
+        if (response->getStatusCode() != drogon::k200OK)
         {
-            return "Sorry, the AI service is "
-                   "temporarily unavailable.";
+            return
+                "AI service is temporarily unavailable. "
+                "Please try again.";
         }
 
-        auto responseJson =
-            response->getJsonObject();
+        Json::Value responseJson;
 
-        if (!responseJson)
+        Json::CharReaderBuilder readerBuilder;
+        std::string errors;
+
+        // Drogon returns string_view here, so explicitly convert it.
+        std::string responseBody(
+            response->getBody().data(),
+            response->getBody().size());
+
+        std::istringstream responseStream(
+            responseBody);
+
+        if (!Json::parseFromStream(
+                readerBuilder,
+                responseStream,
+                &responseJson,
+                &errors))
         {
-            return "Sorry, I received an invalid "
-                   "response from the AI service.";
+            return
+                "AI service returned an invalid response.";
         }
 
-        if (!responseJson->isMember("candidates") ||
-            !(*responseJson)["candidates"].isArray() ||
-            (*responseJson)["candidates"].empty())
+        if (!responseJson.isMember("candidates") ||
+            !responseJson["candidates"].isArray() ||
+            responseJson["candidates"].empty())
         {
-            return "Sorry, the AI service could "
-                   "not generate a response.";
+            return
+                "AI service returned no response.";
         }
 
-        const auto& candidate =
-            (*responseJson)["candidates"][0];
+        const Json::Value& candidate =
+            responseJson["candidates"][0];
 
         if (!candidate.isMember("content"))
         {
-            return "Sorry, the AI service returned "
-                   "an empty response.";
+            return
+                "AI service returned no response.";
         }
 
-        const auto& content =
+        const Json::Value& content =
             candidate["content"];
 
         if (!content.isMember("parts") ||
             !content["parts"].isArray() ||
             content["parts"].empty())
         {
-            return "Sorry, the AI service returned "
-                   "an empty response.";
+            return
+                "AI service returned no response.";
         }
 
-        const auto& part =
+        const Json::Value& part =
             content["parts"][0];
 
-        if (!part.isMember("text") ||
-            !part["text"].isString())
+        if (!part.isMember("text"))
         {
-            return "Sorry, the AI service returned "
-                   "an empty response.";
+            return
+                "AI service returned no response.";
         }
 
         return part["text"].asString();
     }
-    catch (const std::exception&)
+    catch (...)
     {
-        return "Sorry, the AI service is "
-               "temporarily unavailable. "
-               "Please try again later.";
+        return
+            "AI service is temporarily unavailable. "
+            "Please try again.";
     }
 }

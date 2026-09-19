@@ -26,6 +26,7 @@ add_executable(LogeshwariMart
     src/service/ChatbotService.cpp
     src/service/MockAIProvider.cpp
 src/service/AIProviderFactory.cpp
+src/service/GeminiAIProvider.cpp
 
     src/repository/UserRepository.cpp
     src/repository/ProductRepository.cpp
