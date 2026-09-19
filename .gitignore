@@ -9,3 +9,4 @@ config.json
 .vs/
 build/
 CMakeSettings.json
+.env
