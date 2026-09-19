@@ -11,6 +11,9 @@
 
 namespace
 {
+    constexpr std::size_t MAX_MESSAGE_LENGTH = 2000;
+    constexpr std::size_t MAX_REQUESTS_PER_MINUTE = 10;
+
     struct SessionRateData
     {
         std::deque<std::chrono::steady_clock::time_point> requests;
@@ -70,7 +73,6 @@ namespace
             return token;
         }
 
-        // For users who are not logged in
         return req->getPeerAddr().toIp();
     }
 
@@ -100,7 +102,8 @@ namespace
             }
         }
 
-        if (data.requests.size() >= 10)
+        if (data.requests.size() >=
+            MAX_REQUESTS_PER_MINUTE)
         {
             return true;
         }
@@ -122,6 +125,7 @@ void registerChatbotRoutes()
             auto json =
                 req->getJsonObject();
 
+            // Validate JSON body
             if (!json ||
                 !json->isMember("message") ||
                 !(*json)["message"].isString())
@@ -146,6 +150,7 @@ void registerChatbotRoutes()
             std::string message =
                 (*json)["message"].asString();
 
+            // Empty message validation
             if (message.empty())
             {
                 Json::Value error;
@@ -165,9 +170,33 @@ void registerChatbotRoutes()
                 return;
             }
 
+            // AI input length limit
+            if (message.length() >
+                MAX_MESSAGE_LENGTH)
+            {
+                Json::Value error;
+
+                error["success"] = false;
+                error["message"] =
+                    "Message is too long. "
+                    "Maximum allowed length is 2000 characters.";
+
+                auto response =
+                    drogon::HttpResponse::
+                        newHttpJsonResponse(error);
+
+                response->setStatusCode(
+                    drogon::k400BadRequest);
+
+                callback(response);
+                return;
+            }
+
+            // Identify user/session
             std::string sessionKey =
                 getSessionKey(req);
 
+            // Rate limit: 10 requests/minute
             {
                 std::lock_guard<std::mutex>
                     lock(rateLimitMutex);
@@ -193,6 +222,7 @@ void registerChatbotRoutes()
                 }
             }
 
+            // Cache repeated questions
             std::string cacheKey =
                 sessionKey + "|" + message;
 
@@ -223,11 +253,13 @@ void registerChatbotRoutes()
                 }
             }
 
+            // Generate chatbot response
             ChatbotService chatbot;
 
             std::string reply =
                 chatbot.getResponse(message);
 
+            // Store response in cache
             {
                 std::lock_guard<std::mutex>
                     lock(rateLimitMutex);
@@ -236,6 +268,7 @@ void registerChatbotRoutes()
                     reply;
             }
 
+            // Success response
             Json::Value result;
 
             result["success"] = true;
