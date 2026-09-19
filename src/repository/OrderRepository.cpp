@@ -38,8 +38,10 @@ bool OrderRepository::createOrder(
         for (const auto& row : cartResult)
         {
             int quantity = row["quantity"].as<int>();
+
             long long price =
                 row["price_cents"].as<long long>();
+
             int stock =
                 row["stock_qty"].as<int>();
 
@@ -109,8 +111,6 @@ bool OrderRepository::createOrder(
             std::to_string(buyerId)
         );
 
-        // Drogon automatically commits when
-        // the transaction object is destroyed.
         return true;
     }
     catch (const std::exception&)
@@ -118,6 +118,7 @@ bool OrderRepository::createOrder(
         return false;
     }
 }
+
 
 std::vector<Order> OrderRepository::getOrdersByBuyer(
     int buyerId)
@@ -134,6 +135,62 @@ std::vector<Order> OrderRepository::getOrdersByBuyer(
             "WHERE buyer_id = $1::integer "
             "ORDER BY id DESC",
             std::to_string(buyerId)
+        );
+
+        for (const auto& row : result)
+        {
+            Order order;
+
+            order.id =
+                row["id"].as<int>();
+
+            order.buyer_id =
+                row["buyer_id"].as<int>();
+
+            order.status =
+                row["status"].as<std::string>();
+
+            order.total_amount_cents =
+                row["total_amount_cents"].as<long long>();
+
+            orders.push_back(order);
+        }
+    }
+    catch (const std::exception&)
+    {
+    }
+
+    return orders;
+}
+
+
+// =====================================================
+// SELLER ORDER HISTORY
+// =====================================================
+
+std::vector<Order> OrderRepository::getOrdersBySeller(
+    int sellerId)
+{
+    std::vector<Order> orders;
+
+    auto client = drogon::app().getDbClient();
+
+    try
+    {
+        auto result = client->execSqlSync(
+            "SELECT DISTINCT "
+            "o.id, "
+            "o.buyer_id, "
+            "o.status, "
+            "o.total_amount_cents "
+            "FROM orders o "
+            "JOIN order_items oi "
+            "ON oi.order_id = o.id "
+            "JOIN products p "
+            "ON p.id = oi.product_id "
+            "WHERE p.seller_id = $1::integer "
+            "ORDER BY o.id DESC",
+            std::to_string(sellerId)
         );
 
         for (const auto& row : result)

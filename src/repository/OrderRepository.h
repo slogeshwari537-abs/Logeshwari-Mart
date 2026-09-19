@@ -14,4 +14,8 @@ public:
     std::vector<Order> getOrdersByBuyer(
         int buyerId
     );
+
+    std::vector<Order> getOrdersBySeller(
+        int sellerId
+    );
 };

@@ -1,5 +1,6 @@
 #include "OrderController.h"
 #include "../repository/OrderRepository.h"
+#include "../repository/UserRepository.h"
 
 #include <drogon/drogon.h>
 
@@ -7,7 +8,7 @@ void registerOrderRoutes()
 {
     // ============================
     // CHECKOUT + MOCK PAYMENT
-    // AUTHENTICATED USER ONLY
+    // AUTHENTICATED BUYER ONLY
     // ============================
 
     drogon::app().registerHandler(
@@ -125,16 +126,17 @@ void registerOrderRoutes()
         {drogon::Post, "AuthFilter"}
     );
 
+
     // ============================
     // ORDER HISTORY
-    // AUTHENTICATED USER ONLY
+    // BUYER + SELLER
     // ============================
 
     drogon::app().registerHandler(
         "/api/orders/{1}",
         [](const drogon::HttpRequestPtr& req,
            std::function<void(const drogon::HttpResponsePtr&)>&& callback,
-           int buyerId)
+           int userId)
         {
             auto response =
                 drogon::HttpResponse::newHttpResponse();
@@ -147,7 +149,7 @@ void registerOrderRoutes()
                     ->get<int>("authenticatedUserId");
 
             // Prevent user ID spoofing
-            if (buyerId != authenticatedUserId)
+            if (userId != authenticatedUserId)
             {
                 response->setStatusCode(
                     drogon::k403Forbidden);
@@ -159,11 +161,70 @@ void registerOrderRoutes()
                 return;
             }
 
+            // Get logged-in user's details
+            UserRepository userRepository;
+
+            auto user =
+                userRepository.getUserById(
+                    authenticatedUserId);
+
+            if (!user.has_value())
+            {
+                response->setStatusCode(
+                    drogon::k401Unauthorized);
+
+                response->setBody(
+                    R"({"success":false,"message":"User not found"})");
+
+                callback(response);
+                return;
+            }
+
             OrderRepository repository;
 
-            auto orders =
-                repository.getOrdersByBuyer(
-                    authenticatedUserId);
+            std::vector<Order> orders;
+
+            // ============================
+            // BUYER ORDER HISTORY
+            // ============================
+
+            if (user->role == "BUYER")
+            {
+                orders =
+                    repository.getOrdersByBuyer(
+                        authenticatedUserId);
+            }
+
+            // ============================
+            // SELLER ORDER HISTORY
+            // ============================
+
+            else if (user->role == "SELLER")
+            {
+                orders =
+                    repository.getOrdersBySeller(
+                        authenticatedUserId);
+            }
+
+            // ============================
+            // OTHER ROLES
+            // ============================
+
+            else
+            {
+                response->setStatusCode(
+                    drogon::k403Forbidden);
+
+                response->setBody(
+                    R"({"success":false,"message":"Order history is available for buyers and sellers only"})");
+
+                callback(response);
+                return;
+            }
+
+            // ============================
+            // BUILD RESPONSE
+            // ============================
 
             Json::Value result(
                 Json::arrayValue);
@@ -172,9 +233,14 @@ void registerOrderRoutes()
             {
                 Json::Value item;
 
-                item["id"] = order.id;
-                item["buyer_id"] = order.buyer_id;
-                item["status"] = order.status;
+                item["id"] =
+                    order.id;
+
+                item["buyer_id"] =
+                    order.buyer_id;
+
+                item["status"] =
+                    order.status;
 
                 item["total_amount_cents"] =
                     Json::Int64(
