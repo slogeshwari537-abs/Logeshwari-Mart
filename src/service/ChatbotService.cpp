@@ -1,5 +1,5 @@
-
 #include "ChatbotService.h"
+#include "AIProviderFactory.h"
 
 #include <algorithm>
 #include <cctype>
@@ -17,17 +17,24 @@ namespace
             text.begin(),
             [](unsigned char c)
             {
-                return static_cast<char>(
-                    std::tolower(c));
+                return static_cast<char>(std::tolower(c));
             });
 
         return text;
     }
 }
 
+ChatbotService::ChatbotService()
+{
+    provider_ = AIProviderFactory::createProvider("mock");
+}
+
 std::string ChatbotService::getResponse(
     const std::string& message)
 {
+    // Keep the existing LogeshwariMart product-aware
+    // responses for common domain questions.
+
     std::string text = toLower(message);
 
     // Greeting
@@ -71,14 +78,12 @@ std::string ChatbotService::getResponse(
     {
         try
         {
-            auto client =
-                drogon::app().getDbClient();
+            auto client = drogon::app().getDbClient();
 
-            auto result =
-                client->execSqlSync(
-                    "SELECT name, price_cents, stock_qty "
-                    "FROM products "
-                    "ORDER BY id");
+            auto result = client->execSqlSync(
+                "SELECT name, price_cents, stock_qty "
+                "FROM products "
+                "ORDER BY id");
 
             for (const auto& row : result)
             {
@@ -109,9 +114,7 @@ std::string ChatbotService::getResponse(
                     }
 
                     double price =
-                        static_cast<double>(
-                            priceCents) /
-                        100.0;
+                        static_cast<double>(priceCents) / 100.0;
 
                     char priceText[50];
 
@@ -151,7 +154,6 @@ std::string ChatbotService::getResponse(
         return "I can help with products, cart, orders, checkout, reviews and ratings.";
     }
 
-    // Default response
-    return "Sorry, I did not understand. Please ask about products, cart, orders, checkout or reviews.";
+    // Use the configured AI provider for other questions.
+    return provider_->getResponse(message);
 }
-
