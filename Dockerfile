@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     tar \
     pkg-config \
     python3 \
+    bison \
     libssl-dev \
     libpq-dev \
     uuid-dev \
