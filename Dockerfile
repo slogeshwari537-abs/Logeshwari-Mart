@@ -17,6 +17,10 @@ RUN apt-get update && apt-get install -y \
     python3 \
     bison \
     flex \
+    autoconf \
+    autoconf-archive \
+    automake \
+    libtool \
     libssl-dev \
     libpq-dev \
     uuid-dev \
