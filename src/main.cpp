@@ -1,6 +1,9 @@
 #include <drogon/drogon.h>
 #include <spdlog/spdlog.h>
 
+#include <cstdlib>
+#include <string>
+
 void registerAuthRoutes();
 void registerProductRoutes();
 void registerCartRoutes();
@@ -29,13 +32,34 @@ int main()
 
     drogon::app().setDocumentRoot("./frontend");
 
+    const char* portEnvironment =
+        std::getenv("PORT");
+
+    int port = 8080;
+
+    if (portEnvironment != nullptr &&
+        std::string(portEnvironment).empty() == false)
+    {
+        try
+        {
+            port = std::stoi(portEnvironment);
+        }
+        catch (...)
+        {
+            spdlog::warn(
+                "Invalid PORT value. Using port 8080.");
+            port = 8080;
+        }
+    }
+
     drogon::app().addListener(
-        "127.0.0.1",
-        8080
+        "0.0.0.0",
+        port
     );
 
     spdlog::info(
-        "Starting Drogon server on port 8080..."
+        "Starting Drogon server on port {}...",
+        port
     );
 
     drogon::app().run();
