@@ -1,6 +1,8 @@
 #include <drogon/drogon.h>
 #include <spdlog/spdlog.h>
 
+#include <atomic>
+#include <chrono>
 #include <cstdlib>
 #include <string>
 
@@ -18,6 +20,32 @@ int main()
     spdlog::info("Starting LogeshwariMart...");
 
     drogon::app().loadConfigFile("config.json");
+
+    // Structured request logging
+    static std::atomic<unsigned long long> requestCounter{0};
+
+    drogon::app().registerPreRoutingAdvice(
+        [](const drogon::HttpRequestPtr& req)
+        {
+            const auto requestNumber =
+                ++requestCounter;
+
+            const std::string requestId =
+                "REQ-" + std::to_string(requestNumber);
+
+            req->attributes()->insert(
+                "requestId",
+                requestId
+            );
+
+            spdlog::info(
+                "[{}] {} {}",
+                requestId,
+                req->methodString(),
+                req->path()
+            );
+        }
+    );
 
     registerAuthRoutes();
     registerProductRoutes();
@@ -47,7 +75,9 @@ int main()
         catch (...)
         {
             spdlog::warn(
-                "Invalid PORT value. Using port 8080.");
+                "Invalid PORT value. Using port 8080."
+            );
+
             port = 8080;
         }
     }
