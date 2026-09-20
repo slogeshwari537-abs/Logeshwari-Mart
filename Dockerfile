@@ -4,6 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
+# System dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -31,12 +32,12 @@ RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg \
 ENV VCPKG_ROOT=/opt/vcpkg
 ENV PATH="/opt/vcpkg:${PATH}"
 
-# Create a Release-only Linux triplet.
-# This prevents vcpkg from building Debug packages.
+# Release-only custom triplet
 RUN printf '%s\n' \
     'set(VCPKG_TARGET_ARCHITECTURE x64)' \
     'set(VCPKG_CMAKE_SYSTEM_NAME Linux)' \
     'set(VCPKG_BUILD_TYPE release)' \
+    'set(VCPKG_LIBRARY_LINKAGE dynamic)' \
     > /opt/vcpkg/triplets/x64-linux-release.cmake
 
 # Copy project
