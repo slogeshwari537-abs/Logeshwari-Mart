@@ -32,20 +32,20 @@ RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg \
 ENV VCPKG_ROOT=/opt/vcpkg
 ENV PATH="/opt/vcpkg:${PATH}"
 
-# Release-only custom triplet
+# Limit vcpkg build concurrency to reduce memory usage
+ENV VCPKG_MAX_CONCURRENCY=1
+
+# Create a release-only triplet based on the official Linux triplet
 RUN printf '%s\n' \
-    'set(VCPKG_TARGET_ARCHITECTURE x64)' \
-    'set(VCPKG_CMAKE_SYSTEM_NAME Linux)' \
+    'include(/opt/vcpkg/triplets/x64-linux.cmake)' \
     'set(VCPKG_BUILD_TYPE release)' \
-    'set(VCPKG_LIBRARY_LINKAGE dynamic)' \
     > /opt/vcpkg/triplets/x64-linux-release.cmake
 
 # Copy project
 COPY . .
 
-# Install dependencies using Release-only triplet
-RUN VCPKG_BUILD_TYPE=release \
-    vcpkg install \
+# Install dependencies using release-only triplet
+RUN vcpkg install \
     --triplet x64-linux-release
 
 # Configure project
@@ -54,7 +54,7 @@ RUN cmake -S . -B build \
     -DVCPKG_TARGET_TRIPLET=x64-linux-release \
     -DCMAKE_BUILD_TYPE=Release
 
-# Build with one job to reduce memory usage
+# Build with one job
 RUN cmake --build build \
     --config Release \
     --parallel 1
