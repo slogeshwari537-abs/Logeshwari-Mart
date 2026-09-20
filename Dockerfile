@@ -31,6 +31,9 @@ RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg \
 ENV VCPKG_ROOT=/opt/vcpkg
 ENV PATH="/opt/vcpkg:${PATH}"
 
+# Build only Release packages to reduce memory usage
+ENV VCPKG_BUILD_TYPE=release
+
 # Copy project
 COPY . .
 
@@ -43,7 +46,7 @@ RUN cmake -S . -B build \
     -DCMAKE_BUILD_TYPE=Release
 
 # Build project
-RUN cmake --build build --config Release -j2
+RUN cmake --build build --config Release -j1
 
 ENV PORT=10000
 
