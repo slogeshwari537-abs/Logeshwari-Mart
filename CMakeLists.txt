@@ -43,6 +43,9 @@ add_executable(LogeshwariMart
     src/controller/ReviewController.cpp
     src/controller/ChatbotController.cpp
     src/controller/HealthController.cpp
+
+    # Authentication filter
+    src/filter/AuthFilter.cpp
 )
 
 target_include_directories(LogeshwariMart PRIVATE

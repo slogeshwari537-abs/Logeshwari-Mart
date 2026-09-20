@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -917,7 +917,7 @@
         <div class="form-box">
 
             <h2>
-                Add Review ⭐
+                Add Review â­
             </h2>
 
             <label>
@@ -937,23 +937,23 @@
             <select id="reviewRating">
 
                 <option value="5">
-                    5 Stars ⭐⭐⭐⭐⭐
+                    5 Stars â­â­â­â­â­
                 </option>
 
                 <option value="4">
-                    4 Stars ⭐⭐⭐⭐
+                    4 Stars â­â­â­â­
                 </option>
 
                 <option value="3">
-                    3 Stars ⭐⭐⭐
+                    3 Stars â­â­â­
                 </option>
 
                 <option value="2">
-                    2 Stars ⭐⭐
+                    2 Stars â­â­
                 </option>
 
                 <option value="1">
-                    1 Star ⭐
+                    1 Star â­
                 </option>
 
             </select>
@@ -1041,12 +1041,17 @@
                     I'm Logeshwari Mart Assistant.
                     <br><br>
 
-                    You can ask things like:<br>
-
-                    • How can I add a product to cart?<br>
-                    • How can I check my order?<br>
-                    • How can I give a review?<br>
-                    • Tell me about products.
+                    You can ask things like:<br><br>
+<div class="faq-buttons">
+<button type="button" onclick="askFAQ('How can I add a product to cart?')">🛒 Add product to cart</button>
+<button type="button" onclick="askFAQ('How can I check my order?')">📦 Check my order</button>
+<button type="button" onclick="askFAQ('How can I give a review?')">⭐ Give a review</button>
+<button type="button" onclick="askFAQ('Tell me about products.')">🛍️ Tell me about products</button>
+<button type="button" onclick="askFAQ('How can I search for products?')">🔍 Search products</button>
+<button type="button" onclick="askFAQ('How can I checkout?')">💳 Checkout</button>
+<button type="button" onclick="askFAQ('How can I update my cart?')">🛒 Update cart</button>
+<button type="button" onclick="askFAQ('How can I check product stock?')">📦 Check stock</button>
+</div>
 
                 </div>
 
@@ -1078,7 +1083,7 @@
 <footer>
 
     <p>
-        © 2026 Logeshwari Mart |
+        Â© 2026 Logeshwari Mart |
         Everything you love, in one place 💜
     </p>
 
@@ -3316,7 +3321,7 @@
             {
                 showMessage(
                     "reviewMessage",
-                    "Review added successfully! ⭐",
+                    "Review added successfully! â­",
                     true
                 );
 
@@ -3431,7 +3436,7 @@
                     "review-card";
 
                 const stars =
-                    "⭐".repeat(
+                    "â­".repeat(
                         Number(
                             review.rating || 0
                         )
@@ -3606,6 +3611,21 @@
                 false
             );
         }
+    }
+
+    // FAQ BUTTON SUPPORT
+
+    function askFAQ(question)
+    {
+        const input =
+            document.getElementById(
+                "chatInput"
+            );
+
+        input.value =
+            question;
+
+        sendChatMessage();
     }
 
 
@@ -3917,3 +3937,5 @@
 </body>
 
 </html>
+
+
