@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     tar \
     pkg-config \
+    python3 \
     libssl-dev \
     libpq-dev \
     uuid-dev \
@@ -31,7 +32,7 @@ ENV PATH="/opt/vcpkg:${PATH}"
 # Copy project
 COPY . .
 
-# Install C++ dependencies from vcpkg.json
+# Install C++ dependencies
 RUN vcpkg install --triplet x64-linux
 
 # Configure project
@@ -42,7 +43,6 @@ RUN cmake -S . -B build \
 # Build project
 RUN cmake --build build --config Release -j2
 
-# Render provides PORT automatically
 ENV PORT=10000
 
 EXPOSE 10000
