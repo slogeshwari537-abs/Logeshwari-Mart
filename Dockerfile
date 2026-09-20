@@ -31,22 +31,29 @@ RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg \
 ENV VCPKG_ROOT=/opt/vcpkg
 ENV PATH="/opt/vcpkg:${PATH}"
 
-# Build only Release packages to reduce memory usage
+# Build dependencies in Release mode only
 ENV VCPKG_BUILD_TYPE=release
+
+# Limit CMake build parallelism to reduce memory usage
+ENV CMAKE_BUILD_PARALLEL_LEVEL=1
 
 # Copy project
 COPY . .
 
 # Install C++ dependencies
-RUN vcpkg install --triplet x64-linux
+RUN VCPKG_BUILD_TYPE=release vcpkg install \
+    --triplet x64-linux
 
 # Configure project
 RUN cmake -S . -B build \
     -DCMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake \
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_PARALLEL_LEVEL=1
 
 # Build project
-RUN cmake --build build --config Release -j1
+RUN cmake --build build \
+    --config Release \
+    --parallel 1
 
 ENV PORT=10000
 
