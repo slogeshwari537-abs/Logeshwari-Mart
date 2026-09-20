@@ -2,10 +2,8 @@
 #include <spdlog/spdlog.h>
 
 #include <atomic>
-#include <chrono>
 #include <cstdlib>
 #include <fstream>
-#include <regex>
 #include <string>
 
 void registerAuthRoutes();
@@ -19,11 +17,9 @@ void registerHealthRoutes();
 
 namespace
 {
-    std::string getEnvironmentVariable(
-        const char* name)
+    std::string getEnvironmentVariable(const char* name)
     {
-        const char* value =
-            std::getenv(name);
+        const char* value = std::getenv(name);
 
         if (value == nullptr)
         {
@@ -33,6 +29,84 @@ namespace
         return std::string(value);
     }
 
+    std::string percentDecode(const std::string& value)
+    {
+        std::string result;
+
+        for (size_t i = 0; i < value.length(); ++i)
+        {
+            if (value[i] == '%' &&
+                i + 2 < value.length())
+            {
+                try
+                {
+                    const int number =
+                        std::stoi(
+                            value.substr(i + 1, 2),
+                            nullptr,
+                            16
+                        );
+
+                    result +=
+                        static_cast<char>(number);
+
+                    i += 2;
+                }
+                catch (...)
+                {
+                    result += value[i];
+                }
+            }
+            else if (value[i] == '+')
+            {
+                result += ' ';
+            }
+            else
+            {
+                result += value[i];
+            }
+        }
+
+        return result;
+    }
+
+    std::string jsonEscape(const std::string& value)
+    {
+        std::string result;
+
+        for (char c : value)
+        {
+            switch (c)
+            {
+                case '\\':
+                    result += "\\\\";
+                    break;
+
+                case '"':
+                    result += "\\\"";
+                    break;
+
+                case '\n':
+                    result += "\\n";
+                    break;
+
+                case '\r':
+                    result += "\\r";
+                    break;
+
+                case '\t':
+                    result += "\\t";
+                    break;
+
+                default:
+                    result += c;
+                    break;
+            }
+        }
+
+        return result;
+    }
+
     bool createRenderConfig()
     {
         const std::string databaseUrl =
@@ -40,51 +114,227 @@ namespace
 
         if (databaseUrl.empty())
         {
+            spdlog::error(
+                "DATABASE_URL is empty."
+            );
+
             return false;
         }
 
-        /*
-         * Expected Render PostgreSQL URL:
-         *
-         * postgres://username:password@hostname:5432/database
-         *
-         * or:
-         *
-         * postgresql://username:password@hostname:5432/database
-         */
-
-        const std::regex pattern(
-            R"(^(?:postgres|postgresql)://([^:]+):([^@]+)@([^:]+):([0-9]+)/(.+)$)"
+        spdlog::info(
+            "Parsing DATABASE_URL..."
         );
 
-        std::smatch matches;
+        std::string url = databaseUrl;
 
-        if (!std::regex_match(
-                databaseUrl,
-                matches,
-                pattern))
+        const std::string postgresScheme =
+            "postgres://";
+
+        const std::string postgresqlScheme =
+            "postgresql://";
+
+        if (url.rfind(postgresqlScheme, 0) == 0)
+        {
+            url =
+                url.substr(
+                    postgresqlScheme.length()
+                );
+        }
+        else if (url.rfind(postgresScheme, 0) == 0)
+        {
+            url =
+                url.substr(
+                    postgresScheme.length()
+                );
+        }
+        else
         {
             spdlog::error(
-                "Invalid DATABASE_URL format."
+                "DATABASE_URL must start with "
+                "postgres:// or postgresql://."
+            );
+
+            return false;
+        }
+
+        const size_t atPosition =
+            url.rfind('@');
+
+        if (atPosition == std::string::npos)
+        {
+            spdlog::error(
+                "DATABASE_URL does not contain "
+                "a valid user/password section."
+            );
+
+            return false;
+        }
+
+        const std::string userInfo =
+            url.substr(
+                0,
+                atPosition
+            );
+
+        std::string serverPart =
+            url.substr(
+                atPosition + 1
+            );
+
+        const size_t colonPosition =
+            userInfo.find(':');
+
+        if (colonPosition == std::string::npos)
+        {
+            spdlog::error(
+                "DATABASE_URL user/password format "
+                "is invalid."
             );
 
             return false;
         }
 
         const std::string user =
-            matches[1].str();
+            percentDecode(
+                userInfo.substr(
+                    0,
+                    colonPosition
+                )
+            );
 
         const std::string password =
-            matches[2].str();
+            percentDecode(
+                userInfo.substr(
+                    colonPosition + 1
+                )
+            );
 
-        const std::string host =
-            matches[3].str();
+        const size_t slashPosition =
+            serverPart.find('/');
 
-        const std::string port =
-            matches[4].str();
+        if (slashPosition == std::string::npos)
+        {
+            spdlog::error(
+                "DATABASE_URL does not contain "
+                "a database name."
+            );
+
+            return false;
+        }
+
+        std::string hostPart =
+            serverPart.substr(
+                0,
+                slashPosition
+            );
+
+        std::string databasePart =
+            serverPart.substr(
+                slashPosition + 1
+            );
+
+        const size_t queryPosition =
+            databasePart.find('?');
+
+        if (queryPosition != std::string::npos)
+        {
+            databasePart =
+                databasePart.substr(
+                    0,
+                    queryPosition
+                );
+        }
+
+        std::string host;
+        std::string port = "5432";
+
+        if (!hostPart.empty() &&
+            hostPart.front() == '[')
+        {
+            const size_t closingBracket =
+                hostPart.find(']');
+
+            if (closingBracket == std::string::npos)
+            {
+                spdlog::error(
+                    "Invalid IPv6 host format."
+                );
+
+                return false;
+            }
+
+            host =
+                hostPart.substr(
+                    1,
+                    closingBracket - 1
+                );
+
+            if (closingBracket + 1 < hostPart.length() &&
+                hostPart[closingBracket + 1] == ':')
+            {
+                port =
+                    hostPart.substr(
+                        closingBracket + 2
+                    );
+            }
+        }
+        else
+        {
+            const size_t portPosition =
+                hostPart.rfind(':');
+
+            if (portPosition != std::string::npos &&
+                hostPart.find(':') == portPosition)
+            {
+                host =
+                    hostPart.substr(
+                        0,
+                        portPosition
+                    );
+
+                port =
+                    hostPart.substr(
+                        portPosition + 1
+                    );
+            }
+            else
+            {
+                host = hostPart;
+            }
+        }
+
+        host =
+            percentDecode(host);
 
         const std::string database =
-            matches[5].str();
+            percentDecode(databasePart);
+
+        if (user.empty() ||
+            password.empty() ||
+            host.empty() ||
+            database.empty())
+        {
+            spdlog::error(
+                "DATABASE_URL contains missing "
+                "database connection information."
+            );
+
+            return false;
+        }
+
+        spdlog::info(
+            "Render PostgreSQL host detected: {}",
+            host
+        );
+
+        spdlog::info(
+            "Render PostgreSQL port: {}",
+            port
+        );
+
+        spdlog::info(
+            "Render PostgreSQL database detected."
+        );
 
         std::ofstream configFile(
             "render_config.json"
@@ -93,7 +343,7 @@ namespace
         if (!configFile.is_open())
         {
             spdlog::error(
-                "Unable to create Render database configuration."
+                "Unable to create render_config.json."
             );
 
             return false;
@@ -106,19 +356,19 @@ namespace
             << "      \"name\": \"default\",\n"
             << "      \"rdbms\": \"postgresql\",\n"
             << "      \"host\": \""
-            << host
+            << jsonEscape(host)
             << "\",\n"
             << "      \"port\": "
             << port
             << ",\n"
             << "      \"dbname\": \""
-            << database
+            << jsonEscape(database)
             << "\",\n"
             << "      \"user\": \""
-            << user
+            << jsonEscape(user)
             << "\",\n"
             << "      \"passwd\": \""
-            << password
+            << jsonEscape(password)
             << "\",\n"
             << "      \"is_fast\": false,\n"
             << "      \"connection_number\": 1\n"
@@ -127,6 +377,10 @@ namespace
             << "}\n";
 
         configFile.close();
+
+        spdlog::info(
+            "render_config.json created successfully."
+        );
 
         return true;
     }
@@ -174,13 +428,6 @@ int main()
         "Starting LogeshwariMart..."
     );
 
-    /*
-     * Local:
-     *     Uses config.json
-     *
-     * Render:
-     *     Uses DATABASE_URL
-     */
     loadDatabaseConfiguration();
 
     static std::atomic<unsigned long long>
