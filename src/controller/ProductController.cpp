@@ -54,7 +54,8 @@ void registerProductRoutes()
                 !json->isMember("description") ||
                 !json->isMember("price_cents") ||
                 !json->isMember("stock_qty") ||
-                !json->isMember("category"))
+                !json->isMember("category") ||
+                !json->isMember("image_url"))
             {
                 response->setBody(
                     R"({"success":false,"message":"All fields are required"})");
@@ -82,6 +83,9 @@ void registerProductRoutes()
 
             product.category =
                 (*json)["category"].asString();
+
+            product.image_url =
+                (*json)["image_url"].asString();
 
             if (product.name.empty() ||
                 product.description.empty() ||
@@ -113,6 +117,7 @@ void registerProductRoutes()
         },
         {Post, "AuthFilter"});
 
+
     // ============================
     // VIEW PRODUCTS - PUBLIC
     // ============================
@@ -140,10 +145,17 @@ void registerProductRoutes()
             {
                 Json::Value item;
 
-                item["id"] = product.id;
-                item["seller_id"] = product.seller_id;
-                item["name"] = product.name;
-                item["description"] = product.description;
+                item["id"] =
+                    product.id;
+
+                item["seller_id"] =
+                    product.seller_id;
+
+                item["name"] =
+                    product.name;
+
+                item["description"] =
+                    product.description;
 
                 item["price_cents"] =
                     static_cast<Json::Int64>(
@@ -155,6 +167,9 @@ void registerProductRoutes()
                 item["category"] =
                     product.category;
 
+                item["image_url"] =
+                    product.image_url;
+
                 result.append(item);
             }
 
@@ -164,6 +179,7 @@ void registerProductRoutes()
             callback(response);
         },
         {Get});
+
 
     // ============================
     // SEARCH / FILTER - PUBLIC
@@ -200,10 +216,17 @@ void registerProductRoutes()
             {
                 Json::Value item;
 
-                item["id"] = product.id;
-                item["seller_id"] = product.seller_id;
-                item["name"] = product.name;
-                item["description"] = product.description;
+                item["id"] =
+                    product.id;
+
+                item["seller_id"] =
+                    product.seller_id;
+
+                item["name"] =
+                    product.name;
+
+                item["description"] =
+                    product.description;
 
                 item["price_cents"] =
                     static_cast<Json::Int64>(
@@ -215,6 +238,9 @@ void registerProductRoutes()
                 item["category"] =
                     product.category;
 
+                item["image_url"] =
+                    product.image_url;
+
                 result.append(item);
             }
 
@@ -224,6 +250,7 @@ void registerProductRoutes()
             callback(response);
         },
         {Get});
+
 
     // ============================
     // UPDATE PRODUCT
@@ -272,7 +299,8 @@ void registerProductRoutes()
                 !json->isMember("description") ||
                 !json->isMember("price_cents") ||
                 !json->isMember("stock_qty") ||
-                !json->isMember("category"))
+                !json->isMember("category") ||
+                !json->isMember("image_url"))
             {
                 response->setBody(
                     R"({"success":false,"message":"All fields are required"})");
@@ -283,7 +311,8 @@ void registerProductRoutes()
 
             Product product;
 
-            product.id = id;
+            product.id =
+                id;
 
             product.name =
                 (*json)["name"].asString();
@@ -299,6 +328,9 @@ void registerProductRoutes()
 
             product.category =
                 (*json)["category"].asString();
+
+            product.image_url =
+                (*json)["image_url"].asString();
 
             if (product.name.empty() ||
                 product.description.empty() ||
@@ -331,6 +363,7 @@ void registerProductRoutes()
             callback(response);
         },
         {Put, "AuthFilter"});
+
 
     // ============================
     // DELETE PRODUCT

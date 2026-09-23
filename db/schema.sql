@@ -15,6 +15,7 @@ CREATE TABLE products (
     price_cents BIGINT NOT NULL CHECK (price_cents >= 0),
     stock_qty INTEGER NOT NULL DEFAULT 0 CHECK (stock_qty >= 0),
     category VARCHAR(100) NOT NULL,
+    image_url TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

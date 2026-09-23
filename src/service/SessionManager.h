@@ -3,9 +3,8 @@
 #include <string>
 #include <unordered_map>
 #include <mutex>
-#include <random>
-#include <sstream>
-#include <iomanip>
+
+#include <sodium.h>
 
 class SessionManager
 {
@@ -22,6 +21,11 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
 
         std::string token = generateToken();
+
+        if (token.empty())
+        {
+            return "";
+        }
 
         sessions_[token] = userId;
 
@@ -63,24 +67,38 @@ private:
 
     std::string generateToken()
     {
-        std::random_device rd;
-        std::mt19937_64 generator(rd());
-
-        std::uniform_int_distribution<unsigned long long>
-            distribution;
-
-        std::stringstream stream;
-
-        for (int i = 0; i < 4; ++i)
+        if (sodium_init() < 0)
         {
-            stream
-                << std::hex
-                << std::setw(16)
-                << std::setfill('0')
-                << distribution(generator);
+            return "";
         }
 
-        return stream.str();
+        constexpr size_t TOKEN_BYTES = 32;
+
+        unsigned char randomBytes[TOKEN_BYTES];
+
+        randombytes_buf(
+            randomBytes,
+            TOKEN_BYTES
+        );
+
+        static const char hex[] =
+            "0123456789abcdef";
+
+        std::string token;
+        token.reserve(TOKEN_BYTES * 2);
+
+        for (size_t i = 0; i < TOKEN_BYTES; ++i)
+        {
+            token.push_back(
+                hex[(randomBytes[i] >> 4) & 0x0F]
+            );
+
+            token.push_back(
+                hex[randomBytes[i] & 0x0F]
+            );
+        }
+
+        return token;
     }
 
     std::unordered_map<std::string, int> sessions_;

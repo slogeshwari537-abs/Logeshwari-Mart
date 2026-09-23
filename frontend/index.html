@@ -649,6 +649,15 @@
             <textarea
                 id="sellerProductDescription"
                 placeholder="Enter product description"></textarea>
+                <label>
+    Image URL
+</label>
+
+<input
+    type="url"
+    id="sellerProductImageUrl"
+    placeholder="Enter product image URL"
+>
 
             <label>
                 Price (₹)
@@ -1786,6 +1795,13 @@
                 )
                 .value
                 .trim();
+                const imageUrl =
+    document
+        .getElementById(
+            "sellerProductImageUrl"
+        )
+        .value
+        .trim();
 
 
         const price =
@@ -1884,7 +1900,10 @@
                                         stock,
 
                                     category:
-                                        category
+                                        category,
+
+                                    image_url:
+                                       imageUrl
                                 })
                         }
                     );
@@ -1926,7 +1945,9 @@
                                         stock,
 
                                     category:
-                                        category
+                                        category,
+                                        image_url:
+    imageUrl
                                 })
                         }
                     );
@@ -2155,7 +2176,11 @@
                                     '${escapeJs(
                                         product.category ||
                                         ""
-                                    )}'
+                                    )}',
+                                    '${escapeJs(
+    product.image_url ||
+    ""
+)}'
                                 )">
                                 Edit ✏️
                             </button>
@@ -2200,7 +2225,8 @@
         description,
         price,
         stock,
-        category
+        category,
+        imageUrl
     )
     {
         document.getElementById(
@@ -2231,7 +2257,9 @@
         document.getElementById(
             "sellerProductCategory"
         ).value = category;
-
+document.getElementById(
+    "sellerProductImageUrl"
+).value = imageUrl;
 
         document.getElementById(
             "sellerFormTitle"

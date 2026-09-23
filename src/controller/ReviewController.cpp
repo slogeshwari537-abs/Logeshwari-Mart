@@ -12,11 +12,9 @@ using namespace drogon;
 
 int getReviewUserId(const HttpRequestPtr& req)
 {
-    // Check X-Auth-Token header
     std::string token =
         req->getHeader("X-Auth-Token");
 
-    // If header is empty, check session_token cookie
     if (token.empty())
     {
         std::string cookie =
@@ -51,13 +49,11 @@ int getReviewUserId(const HttpRequestPtr& req)
         }
     }
 
-    // No token
     if (token.empty())
     {
         return -1;
     }
 
-    // Get user ID from our project's SessionManager
     return ::SessionManager::getInstance()
         .getUserId(token);
 }
@@ -69,7 +65,6 @@ int getReviewUserId(const HttpRequestPtr& req)
 
 void registerReviewRoutes()
 {
-
     // ========================================================
     // ADD REVIEW
     // ========================================================
@@ -87,7 +82,6 @@ void registerReviewRoutes()
             response->setContentTypeCode(
                 CT_APPLICATION_JSON
             );
-
 
             // ------------------------------------------------
             // CHECK LOGIN
@@ -110,14 +104,12 @@ void registerReviewRoutes()
                 return;
             }
 
-
             // ------------------------------------------------
             // GET JSON
             // ------------------------------------------------
 
             auto json =
                 req->getJsonObject();
-
 
             if (!json ||
                 !json->isMember("product_id") ||
@@ -136,7 +128,6 @@ void registerReviewRoutes()
                 return;
             }
 
-
             // ------------------------------------------------
             // READ DATA
             // ------------------------------------------------
@@ -149,7 +140,6 @@ void registerReviewRoutes()
 
             std::string comment =
                 (*json)["comment"].asString();
-
 
             // ------------------------------------------------
             // VALIDATE PRODUCT ID
@@ -168,7 +158,6 @@ void registerReviewRoutes()
                 callback(response);
                 return;
             }
-
 
             // ------------------------------------------------
             // VALIDATE RATING
@@ -189,7 +178,6 @@ void registerReviewRoutes()
                 return;
             }
 
-
             // ------------------------------------------------
             // VALIDATE COMMENT
             // ------------------------------------------------
@@ -208,12 +196,31 @@ void registerReviewRoutes()
                 return;
             }
 
+            // ------------------------------------------------
+            // CHECK COMPLETED ORDER
+            // ------------------------------------------------
+
+            ReviewRepository repository;
+
+            if (!repository.hasCompletedOrder(
+                    productId,
+                    userId))
+            {
+                response->setStatusCode(
+                    k403Forbidden
+                );
+
+                response->setBody(
+                    R"({"success":false,"message":"You can review this product only after completing an order"})"
+                );
+
+                callback(response);
+                return;
+            }
 
             // ------------------------------------------------
             // ADD REVIEW TO DATABASE
             // ------------------------------------------------
-
-            ReviewRepository repository;
 
             if (repository.addReview(
                     productId,
@@ -264,7 +271,6 @@ void registerReviewRoutes()
                 CT_APPLICATION_JSON
             );
 
-
             // ------------------------------------------------
             // VALIDATE PRODUCT ID
             // ------------------------------------------------
@@ -283,7 +289,6 @@ void registerReviewRoutes()
                 return;
             }
 
-
             // ------------------------------------------------
             // GET REVIEWS
             // ------------------------------------------------
@@ -295,11 +300,9 @@ void registerReviewRoutes()
                     productId
                 );
 
-
             Json::Value result(
                 Json::arrayValue
             );
-
 
             for (const auto& review : reviews)
             {
@@ -322,7 +325,6 @@ void registerReviewRoutes()
 
                 result.append(item);
             }
-
 
             // ------------------------------------------------
             // RESPONSE

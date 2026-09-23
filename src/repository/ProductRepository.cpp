@@ -11,14 +11,15 @@ bool ProductRepository::addProduct(
     {
         client->execSqlSync(
             "INSERT INTO products "
-            "(seller_id, name, description, price_cents, stock_qty, category) "
-            "VALUES ($1::integer, $2, $3, $4::bigint, $5::integer, $6)",
+            "(seller_id, name, description, price_cents, stock_qty, category, image_url) "
+            "VALUES ($1::integer, $2, $3, $4::bigint, $5::integer, $6, $7)",
             std::to_string(product.seller_id),
             product.name,
             product.description,
             std::to_string(product.price_cents),
             std::to_string(product.stock_qty),
-            product.category
+            product.category,
+            product.image_url
         );
 
         return true;
@@ -39,7 +40,7 @@ std::vector<Product> ProductRepository::getProducts()
     {
         auto result = client->execSqlSync(
             "SELECT id, seller_id, name, description, "
-            "price_cents, stock_qty, category "
+            "price_cents, stock_qty, category, image_url "
             "FROM products "
             "ORDER BY id DESC"
         );
@@ -48,16 +49,29 @@ std::vector<Product> ProductRepository::getProducts()
         {
             Product product;
 
-            product.id = row["id"].as<int>();
-            product.seller_id = row["seller_id"].as<int>();
-            product.name = row["name"].as<std::string>();
-            product.description = row["description"].as<std::string>();
+            product.id =
+                row["id"].as<int>();
+
+            product.seller_id =
+                row["seller_id"].as<int>();
+
+            product.name =
+                row["name"].as<std::string>();
+
+            product.description =
+                row["description"].as<std::string>();
+
             product.price_cents =
                 row["price_cents"].as<long long>();
+
             product.stock_qty =
                 row["stock_qty"].as<int>();
+
             product.category =
                 row["category"].as<std::string>();
+
+            product.image_url =
+                row["image_url"].as<std::string>();
 
             products.push_back(product);
         }
@@ -81,7 +95,7 @@ std::vector<Product> ProductRepository::searchProducts(
     {
         auto result = client->execSqlSync(
             "SELECT id, seller_id, name, description, "
-            "price_cents, stock_qty, category "
+            "price_cents, stock_qty, category, image_url "
             "FROM products "
             "WHERE (name ILIKE '%' || $1 || '%' "
             "OR description ILIKE '%' || $1 || '%') "
@@ -95,17 +109,29 @@ std::vector<Product> ProductRepository::searchProducts(
         {
             Product product;
 
-            product.id = row["id"].as<int>();
-            product.seller_id = row["seller_id"].as<int>();
-            product.name = row["name"].as<std::string>();
+            product.id =
+                row["id"].as<int>();
+
+            product.seller_id =
+                row["seller_id"].as<int>();
+
+            product.name =
+                row["name"].as<std::string>();
+
             product.description =
                 row["description"].as<std::string>();
+
             product.price_cents =
                 row["price_cents"].as<long long>();
+
             product.stock_qty =
                 row["stock_qty"].as<int>();
+
             product.category =
                 row["category"].as<std::string>();
+
+            product.image_url =
+                row["image_url"].as<std::string>();
 
             products.push_back(product);
         }
@@ -131,14 +157,16 @@ bool ProductRepository::updateProduct(
             "description = $2, "
             "price_cents = $3::bigint, "
             "stock_qty = $4::integer, "
-            "category = $5 "
-            "WHERE id = $6::integer "
-            "AND seller_id = $7::integer",
+            "category = $5, "
+            "image_url = $6 "
+            "WHERE id = $7::integer "
+            "AND seller_id = $8::integer",
             product.name,
             product.description,
             std::to_string(product.price_cents),
             std::to_string(product.stock_qty),
             product.category,
+            product.image_url,
             std::to_string(product.id),
             std::to_string(sellerId)
         );

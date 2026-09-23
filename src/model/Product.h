@@ -11,4 +11,5 @@ struct Product
     long long price_cents;
     int stock_qty;
     std::string category;
+    std::string image_url;
 };
