@@ -1,21 +1,37 @@
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <unordered_map>
-#include <mutex>
 
 #include <sodium.h>
 
+/**
+ * @brief Manages authenticated user sessions.
+ *
+ * Provides thread-safe session creation, validation,
+ * user lookup, and session removal.
+ */
 class SessionManager
 {
 public:
-
+    /**
+     * @brief Returns the singleton SessionManager instance.
+     *
+     * @return Reference to the SessionManager singleton.
+     */
     static SessionManager& getInstance()
     {
         static SessionManager instance;
         return instance;
     }
 
+    /**
+     * @brief Creates a new authenticated session.
+     *
+     * @param userId ID of the authenticated user.
+     * @return Random session token, or an empty string on failure.
+     */
     std::string createSession(int userId)
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -32,6 +48,12 @@ public:
         return token;
     }
 
+    /**
+     * @brief Checks whether a session token is valid.
+     *
+     * @param token Session token to validate.
+     * @return true if the session exists; otherwise false.
+     */
     bool isValidSession(const std::string& token)
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -40,6 +62,12 @@ public:
                != sessions_.end();
     }
 
+    /**
+     * @brief Retrieves the user ID associated with a session.
+     *
+     * @param token Session token.
+     * @return User ID, or -1 if the session is invalid.
+     */
     int getUserId(const std::string& token)
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -54,6 +82,11 @@ public:
         return it->second;
     }
 
+    /**
+     * @brief Removes an authenticated session.
+     *
+     * @param token Session token to remove.
+     */
     void removeSession(const std::string& token)
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -62,9 +95,13 @@ public:
     }
 
 private:
-
     SessionManager() = default;
 
+    /**
+     * @brief Generates a cryptographically secure session token.
+     *
+     * @return Random hexadecimal session token.
+     */
     std::string generateToken()
     {
         if (sodium_init() < 0)
