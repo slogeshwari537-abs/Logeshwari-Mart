@@ -1,0 +1,14 @@
+.git
+.github
+.vs
+.vscode
+build
+vcpkg_installed
+*.exe
+*.obj
+*.pdb
+*.log
+.env
+config.json
+render_config.json
+CMakeSettings.json

@@ -30,7 +30,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install vcpkg
-RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg \
+# Shallow clone reduces download size and build time
+RUN git -c http.version=HTTP/1.1 clone --depth 1 \
+    https://github.com/microsoft/vcpkg.git /opt/vcpkg \
     && /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 ENV VCPKG_ROOT=/opt/vcpkg
