@@ -71,7 +71,9 @@ std::vector<Product> ProductRepository::getProducts()
                 row["category"].as<std::string>();
 
             product.image_url =
-                row["image_url"].as<std::string>();
+                row["image_url"].isNull()
+                    ? ""
+                    : row["image_url"].as<std::string>();
 
             products.push_back(product);
         }
@@ -131,7 +133,9 @@ std::vector<Product> ProductRepository::searchProducts(
                 row["category"].as<std::string>();
 
             product.image_url =
-                row["image_url"].as<std::string>();
+                row["image_url"].isNull()
+                    ? ""
+                    : row["image_url"].as<std::string>();
 
             products.push_back(product);
         }
