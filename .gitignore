@@ -10,3 +10,7 @@ config.json
 build/
 CMakeSettings.json
 .env
+build-ninja/
+build-release/
+frontend/server-error.txt
+server-log.txt
