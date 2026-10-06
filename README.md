@@ -62,3 +62,43 @@ Logeshwari Mart/
 ├── .dockerignore
 ├── Dockerfile
 └── README.md
+## API Endpoints
+
+### Health
+- GET /api/v1/health - Check application and database health
+
+### Authentication
+- POST /api/register - Register a Buyer or Seller
+- POST /api/login - Login and create a session
+
+### Products
+- GET /api/products - Get all products
+- GET /api/products/search - Search products by keyword
+- POST /api/products - Create a product
+- PUT /api/products/{id} - Update a product
+- DELETE /api/products/{id} - Delete a product
+
+### Cart
+- GET /api/cart/{userId} - Get user's cart
+- POST /api/cart - Add a product to cart
+- PUT /api/cart/{userId}/{productId} - Update cart quantity
+- DELETE /api/cart/{userId}/{productId} - Remove a product from cart
+- DELETE /api/cart/clear/{userId} - Clear the cart
+
+### Orders
+- POST /api/checkout/{userId} - Checkout and create an order
+- GET /api/orders/{userId} - Get buyer order history
+
+### Reviews
+- POST /api/reviews - Add a product review
+- GET /api/reviews/{productId} - Get product reviews
+
+### Chatbot
+- POST /api/chat - Ask the AI chatbot
+
+### Admin
+- GET /api/admin/users - Get all users
+- DELETE /api/admin/users/{userId} - Delete a user
+- GET /api/admin/orders - Get all orders
+- GET /api/admin/products - Get all products
+- DELETE /api/admin/products/{productId} - Remove a product
