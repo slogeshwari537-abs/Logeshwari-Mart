@@ -21,6 +21,7 @@ find_package(spdlog CONFIG REQUIRED)
 add_executable(LogeshwariMart
 
     src/main.cpp
+    src/MigrationRunner.cpp
 
     src/service/AuthService.cpp
     src/service/ChatbotService.cpp
@@ -89,3 +90,58 @@ add_executable(GenerateHash
 target_link_libraries(GenerateHash PRIVATE
     unofficial-sodium::sodium
 )
+
+# =========================
+# Static Analysis - clang-tidy
+# =========================
+
+find_program(CLANG_TIDY_EXE
+    NAMES clang-tidy
+)
+message(STATUS "CLANG_TIDY_EXE=${CLANG_TIDY_EXE}")
+
+if(CLANG_TIDY_EXE)
+    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+endif()
+# =========================
+# Static Analysis - Cppcheck
+# =========================
+
+find_program(CPPCHECK_EXE
+    NAMES cppcheck
+)
+
+if(CPPCHECK_EXE)
+    add_custom_target(cppcheck
+        COMMAND ${CPPCHECK_EXE}
+            --enable=warning,style,performance,portability
+            --inline-suppr
+            --suppress=missingIncludeSystem
+            --suppress=throwInEntryPoint
+            --language=c++
+            --std=c++20
+            -I ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/src
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running Cppcheck static analysis"
+    )
+endif()
+# =========================
+# Explicit clang-tidy target
+# =========================
+
+if(CLANG_TIDY_EXE)
+    add_custom_target(clang-tidy
+        COMMAND "${CLANG_TIDY_EXE}"
+            -p "${CMAKE_BINARY_DIR}"
+            "${CMAKE_SOURCE_DIR}/src/main.cpp"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        COMMENT "Running clang-tidy static analysis"
+    )
+endif()
+# Enable C++ exception handling for MSVC
+target_compile_options(LogeshwariMart PRIVATE /EHsc)
+
+if(MSVC)
+    target_compile_definitions(LogeshwariMart PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()

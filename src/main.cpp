@@ -1,3 +1,4 @@
+#include "MigrationRunner.h"
 #include <drogon/drogon.h>
 #include <spdlog/spdlog.h>
 
@@ -74,9 +75,9 @@ namespace
     {
         std::string result;
 
-        for (char c : value)
+        for (char character : value)
         {
-            switch (c)
+            switch (character)
             {
                 case '\\':
                     result += "\\\\";
@@ -99,7 +100,7 @@ namespace
                     break;
 
                 default:
-                    result += c;
+                    result += character;
                     break;
             }
         }
@@ -422,13 +423,26 @@ namespace
     }
 }
 
-int main()
+int main() // NOLINT(bugprone-exception-escape)
 {
     spdlog::info(
         "Starting LogeshwariMart..."
     );
 
-    loadDatabaseConfiguration();
+    try
+    {
+        loadDatabaseConfiguration();
+    }
+    catch (const std::exception& ex)
+    {
+        spdlog::error("Database configuration failed: {}", ex.what());
+        return 1;
+    }
+    catch (...)
+    {
+        spdlog::error("Database configuration failed with an unknown error.");
+        return 1;
+    }
 
     static std::atomic<unsigned long long>
         requestCounter{0};
@@ -478,10 +492,11 @@ int main()
     const char* portEnvironment =
         std::getenv("PORT");
 
-    int port = 8080;
+    constexpr int defaultPort = 8080;
+    int port = defaultPort;
 
     if (portEnvironment != nullptr &&
-        std::string(portEnvironment).empty() == false)
+        !std::string(portEnvironment).empty())
     {
         try
         {
@@ -495,7 +510,7 @@ int main()
                 "Using port 8080."
             );
 
-            port = 8080;
+            port = defaultPort;
         }
     }
 
@@ -509,7 +524,15 @@ int main()
         port
     );
 
+    drogon::app().registerBeginningAdvice([]() {
+        runMigrations();
+    });
+
     drogon::app().run();
 
     return 0;
 }
+
+
+
+
