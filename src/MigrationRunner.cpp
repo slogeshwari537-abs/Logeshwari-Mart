@@ -97,10 +97,18 @@ void runMigrations()
             version
         );
 
-        const std::string sql =
-            readFile(migration);
+       const std::string sql = readFile(migration);
 
-        client->execSqlSync(sql);
+std::stringstream statements(sql);
+std::string statement;
+
+while (std::getline(statements, statement, ';'))
+{
+    if (statement.find_first_not_of(" \t\n\r") == std::string::npos)
+        continue;
+
+    client->execSqlSync(statement);
+}
 
         client->execSqlSync(
             "INSERT INTO schema_migrations(version) "
