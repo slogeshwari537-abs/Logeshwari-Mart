@@ -143,5 +143,6 @@ endif()
 target_compile_options(LogeshwariMart PRIVATE /EHsc)
 
 if(MSVC)
+    target_compile_options(LogeshwariMart PRIVATE /EHsc)
     target_compile_definitions(LogeshwariMart PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
