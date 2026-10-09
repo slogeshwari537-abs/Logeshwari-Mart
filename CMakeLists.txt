@@ -139,8 +139,6 @@ if(CLANG_TIDY_EXE)
         COMMENT "Running clang-tidy static analysis"
     )
 endif()
-# Enable C++ exception handling for MSVC
-target_compile_options(LogeshwariMart PRIVATE /EHsc)
 
 if(MSVC)
     target_compile_options(LogeshwariMart PRIVATE /EHsc)
