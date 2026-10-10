@@ -1,6 +1,7 @@
 #include "OrderRepository.h"
 
 #include <drogon/drogon.h>
+#include <iostream>
 
 bool OrderRepository::createOrder(
     int buyerId,
@@ -37,7 +38,8 @@ bool OrderRepository::createOrder(
         // Validate quantity and stock
         for (const auto& row : cartResult)
         {
-            int quantity = row["quantity"].as<int>();
+            int quantity =
+                row["quantity"].as<int>();
 
             long long price =
                 row["price_cents"].as<long long>();
@@ -120,6 +122,10 @@ bool OrderRepository::createOrder(
 }
 
 
+// =====================================================
+// BUYER ORDER HISTORY
+// =====================================================
+
 std::vector<Order> OrderRepository::getOrdersByBuyer(
     int buyerId)
 {
@@ -193,6 +199,7 @@ std::vector<Order> OrderRepository::getOrdersBySeller(
             std::to_string(sellerId)
         );
 
+        
         for (const auto& row : result)
         {
             Order order;
@@ -212,8 +219,11 @@ std::vector<Order> OrderRepository::getOrdersBySeller(
             orders.push_back(order);
         }
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
+        std::cerr << "SELLER ORDER ERROR: "
+                  << e.what()
+                  << std::endl;
     }
 
     return orders;

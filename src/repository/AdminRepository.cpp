@@ -1,6 +1,7 @@
 #include "AdminRepository.h"
 
 #include <drogon/drogon.h>
+#include <iostream>
 
 std::vector<User> AdminRepository::getAllUsers()
 {
@@ -33,8 +34,9 @@ std::vector<User> AdminRepository::getAllUsers()
             users.push_back(user);
         }
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
+        std::cerr << "Admin getAllProducts error: " << e.what() << std::endl;
     }
 
     return users;
@@ -93,11 +95,56 @@ std::vector<Order> AdminRepository::getAllOrders()
             orders.push_back(order);
         }
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
+        std::cerr << "Admin getAllProducts error: " << e.what() << std::endl;
     }
 
     return orders;
+}
+
+std::vector<Product> AdminRepository::getAllProducts()
+{
+    std::vector<Product> products;
+
+    auto client = drogon::app().getDbClient();
+
+    try
+    {
+        auto result = client->execSqlSync(
+            "SELECT id, seller_id, name, description, "
+            "price_cents, stock_qty, category, image_url, is_active "
+            "FROM products "
+            "ORDER BY id DESC"
+        );
+
+        for (const auto& row : result)
+        {
+            Product product;
+
+            product.id = row["id"].as<int>();
+            product.seller_id = row["seller_id"].as<int>();
+            product.name = row["name"].as<std::string>();
+            product.description = row["description"].isNull()
+                ? ""
+                : row["description"].as<std::string>();
+            product.price_cents = row["price_cents"].as<long long>();
+            product.stock_qty = row["stock_qty"].as<int>();
+            product.category = row["category"].as<std::string>();
+            product.image_url = row["image_url"].isNull()
+                ? ""
+                : row["image_url"].as<std::string>();
+            product.is_active = row["is_active"].as<bool>();
+
+            products.push_back(product);
+        }
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Admin getAllProducts error: " << e.what() << std::endl;
+    }
+
+    return products;
 }
 
 bool AdminRepository::deleteProduct(int productId)
@@ -107,7 +154,8 @@ bool AdminRepository::deleteProduct(int productId)
     try
     {
         auto result = client->execSqlSync(
-            "DELETE FROM products "
+            "UPDATE products "
+            "SET is_active = FALSE "
             "WHERE id = $1::integer",
             std::to_string(productId)
         );
@@ -119,3 +167,5 @@ bool AdminRepository::deleteProduct(int productId)
         return false;
     }
 }
+
+

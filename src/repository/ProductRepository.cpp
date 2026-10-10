@@ -40,8 +40,9 @@ std::vector<Product> ProductRepository::getProducts()
     {
         auto result = client->execSqlSync(
             "SELECT id, seller_id, name, description, "
-            "price_cents, stock_qty, category, image_url "
+            "price_cents, stock_qty, category, image_url, is_active "
             "FROM products "
+            "WHERE is_active = TRUE "
             "ORDER BY id DESC"
         );
 
@@ -75,6 +76,9 @@ std::vector<Product> ProductRepository::getProducts()
                     ? ""
                     : row["image_url"].as<std::string>();
 
+            product.is_active =
+                row["is_active"].as<bool>();
+
             products.push_back(product);
         }
     }
@@ -97,9 +101,10 @@ std::vector<Product> ProductRepository::searchProducts(
     {
         auto result = client->execSqlSync(
             "SELECT id, seller_id, name, description, "
-            "price_cents, stock_qty, category, image_url "
+            "price_cents, stock_qty, category, image_url, is_active "
             "FROM products "
-            "WHERE (name ILIKE '%' || $1 || '%' "
+            "WHERE is_active = TRUE "
+            "AND (name ILIKE '%' || $1 || '%' "
             "OR description ILIKE '%' || $1 || '%') "
             "AND ($2 = '' OR category = $2) "
             "ORDER BY id DESC",
@@ -136,6 +141,9 @@ std::vector<Product> ProductRepository::searchProducts(
                 row["image_url"].isNull()
                     ? ""
                     : row["image_url"].as<std::string>();
+
+            product.is_active =
+                row["is_active"].as<bool>();
 
             products.push_back(product);
         }
@@ -192,7 +200,8 @@ bool ProductRepository::deleteProduct(
     try
     {
         auto result = client->execSqlSync(
-            "DELETE FROM products "
+            "UPDATE products "
+            "SET is_active = FALSE "
             "WHERE id = $1::integer "
             "AND seller_id = $2::integer",
             std::to_string(productId),
@@ -206,3 +215,4 @@ bool ProductRepository::deleteProduct(
         return false;
     }
 }
+

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 
@@ -12,4 +12,5 @@ struct Product
     int stock_qty;
     std::string category;
     std::string image_url;
+    bool is_active;
 };

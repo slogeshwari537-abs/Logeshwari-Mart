@@ -239,7 +239,7 @@ void registerReviewRoutes()
                 );
 
                 response->setBody(
-                    R"({"success":false,"message":"Failed to add review"})"
+                    R"({"success":false,"message":"You have already reviewed this product"})"
                 );
             }
 

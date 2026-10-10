@@ -14,3 +14,10 @@ build-ninja/
 build-release/
 frontend/server-error.txt
 server-log.txt
+
+src_backup_api_versioning/
+src/main_backup_before_migration.cpp
+frontend/index_backup.html
+build-asan/
+build-clang-tidy/
+/where

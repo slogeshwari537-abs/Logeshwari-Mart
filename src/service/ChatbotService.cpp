@@ -100,7 +100,13 @@ std::string ChatbotService::getResponse(
     {
         return "You can give a rating from 1 to 5 and add a review for a product.";
     }
-
+// General product availability question
+if (text.find("what products") != std::string::npos ||
+    text.find("which products") != std::string::npos ||
+    text.find("products are available") != std::string::npos)
+{
+    return "We currently have products like Cotton Kurti, Silk Saree and other fashion items. Please check the Products section to see all available products.";
+}
     // Product price / stock questions
     if (text.find("price") !=
             std::string::npos ||

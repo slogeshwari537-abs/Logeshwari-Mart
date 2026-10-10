@@ -382,6 +382,68 @@ void registerAdminRoutes()
 
 
     // ========================================================
+    // ========================================================
+    // GET ALL PRODUCTS
+    // ========================================================
+
+    drogon::app().registerHandler(
+        "/api/admin/products",
+
+        [](const drogon::HttpRequestPtr& req,
+           std::function<void(const drogon::HttpResponsePtr&)>&& callback)
+        {
+            auto response = drogon::HttpResponse::newHttpResponse();
+            response->setContentTypeCode(drogon::CT_APPLICATION_JSON);
+
+            int authenticatedUserId = getAuthenticatedUserId(req);
+            UserRepository userRepository;
+            auto adminUser = userRepository.getUserById(authenticatedUserId);
+
+            if (!adminUser.has_value() || adminUser->role != "ADMIN")
+            {
+                response->setStatusCode(drogon::k403Forbidden);
+
+                Json::Value body;
+                body["success"] = false;
+                body["message"] = "Admin access required";
+                response->setBody(body.toStyledString());
+                callback(response);
+                return;
+            }
+
+            AdminRepository repository;
+            auto products = repository.getAllProducts();
+
+            Json::Value result(Json::arrayValue);
+
+            for (const auto& product : products)
+            {
+                Json::Value item;
+                item["id"] = product.id;
+                item["seller_id"] = product.seller_id;
+                item["name"] = product.name;
+                item["description"] = product.description;
+                item["price_cents"] = static_cast<Json::Int64>(product.price_cents);
+                item["stock_qty"] = product.stock_qty;
+                item["category"] = product.category;
+                item["image_url"] = product.image_url;
+                item["is_active"] = product.is_active;
+                result.append(item);
+            }
+
+            Json::Value body;
+            body["success"] = true;
+            body["products"] = result;
+            response->setBody(body.toStyledString());
+            callback(response);
+        },
+
+        {drogon::Get},
+
+        {"AuthFilter"}
+    );
+
+
     // DELETE LISTING / PRODUCT
     // ========================================================
 
@@ -409,6 +471,7 @@ void registerAdminRoutes()
                 userRepository.getUserById(
                     authenticatedUserId
                 );
+                
 
             // Check ADMIN role
             if (!adminUser.has_value() ||
